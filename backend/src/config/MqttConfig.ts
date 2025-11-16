@@ -1,0 +1,1 @@
+export const MQTT_URL = "mqtt://localhost:1883";
