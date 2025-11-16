@@ -16,6 +16,8 @@ function DashboardPage() {
         if (isMounted) {
           setAlerts(data);
         }
+      } catch (error) {
+        console.error("Failed to load alerts:", error);
       } finally {
         if (isMounted) {
           setLoading(false);
@@ -23,10 +25,19 @@ function DashboardPage() {
       }
     }
 
+    // Początkowe ładowanie
     load();
+
+    // Polling co 2 sekundy dla live mode
+    const interval = setInterval(() => {
+      if (isMounted) {
+        load();
+      }
+    }, 2000);
 
     return () => {
       isMounted = false;
+      clearInterval(interval);
     };
   }, []);
 
