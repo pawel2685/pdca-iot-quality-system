@@ -1,8 +1,39 @@
+import { useEffect, useState } from "react";
+import type { Alert } from "../types/Alert";
 import { getAlerts } from "../api/Alerts";
 
 function DashboardPage() {
 
-  const alerts = getAlerts();
+  const [alerts, setAlerts] = useState<Alert[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function load() {
+      try {
+        const data = await getAlerts();
+        if (isMounted) {
+          setAlerts(data);
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    }
+
+    load();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  if (loading) {
+    return <div className="text-slate-200">Ładowanie alertów...</div>;
+  }
+
 
   const now = new Date();
 
