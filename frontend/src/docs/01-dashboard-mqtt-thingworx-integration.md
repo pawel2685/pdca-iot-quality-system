@@ -34,28 +34,32 @@ Celem tego etapu było stworzenie systemu frontendowego, który:
 ### 3.1 Diagram Architektury
 
 ```
-┌─────────────────┐         WebSocket/MQTT         ┌──────────────────┐
-│                 │ ◄──────────────────────────────► │                  │
+┌─────────────────┐         Future: MQTT/WebSocket  ┌──────────────────┐
+│                 │ ◄─────────────────────────────► │                  │
 │   Frontend      │                                  │  ThingWorx       │
-│   (React)       │         Subscribe Topics        │  MQTT Broker     │
+│   (React)       │         (Planowane)             │  MQTT Broker     │
 │                 │ ────────────────────────────────►│                  │
 └─────────────────┘                                  └──────────────────┘
         │
-        │ Component Tree
+        │ Aktualnie: Tryb Lokalny
         ▼
 ┌─────────────────────────────────────────────┐
 │           App.tsx (Root)                    │
+│  - Główny layout aplikacji                 │
+│  - Tytuł "PDCA Alert Dashboard"            │
+│  - Styling: slate-900 background           │
 │  ┌────────────────────────────────────┐    │
 │  │   DashboardPage                    │    │
 │  │  ┌──────────────────────────────┐ │    │
-│  │  │  AlertList Component         │ │    │
-│  │  │  - Real-time alerts display  │ │    │
+│  │  │  Dzisiejsze Alerty           │ │    │
+│  │  │  - Filtracja po dacie        │ │    │
+│  │  │  - Lista alertów z dziś      │ │    │
 │  │  └──────────────────────────────┘ │    │
-│  └────────────────────────────────────┘    │
-│                                             │
-│  ┌────────────────────────────────────┐    │
-│  │   AlertsPage                       │    │
-│  │  - Detailed alerts view            │    │
+│  │  ┌──────────────────────────────┐ │    │
+│  │  │  Nieprzypisane z 7 dni       │ │    │
+│  │  │  - Wszystkie alerty 7 dni    │ │    │
+│  │  │  - Stan "NOT ASSIGNED"       │ │    │
+│  │  └──────────────────────────────┘ │    │
 │  └────────────────────────────────────┘    │
 └─────────────────────────────────────────────┘
         │
@@ -64,15 +68,51 @@ Celem tego etapu było stworzenie systemu frontendowego, który:
 ┌─────────────────────────────────────────────┐
 │         API Layer (src/api/)                │
 │  ┌────────────────────────────────────┐    │
-│  │  mqttClient.ts                     │    │
-│  │  - Connection management           │    │
-│  │  - Topic subscription              │    │
-│  │  - Message handling                │    │
+│  │  Alerts.ts                         │    │
+│  │  - Główny interfejs API            │    │
+│  │  - Przełączanie trybu (local/live) │    │
+│  │  - getAlerts() function            │    │
 │  └────────────────────────────────────┘    │
 │  ┌────────────────────────────────────┐    │
-│  │  alertsApi.ts                      │    │
-│  │  - Alert data transformation       │    │
-│  │  - Type definitions                │    │
+│  │  LocalAlerts.ts                    │    │
+│  │  - Tryb lokalny (mock data)        │    │
+│  │  - getLocalAlerts() function       │    │
+│  └────────────────────────────────────┘    │
+└─────────────────────────────────────────────┘
+        │
+        │ Uses
+        ▼
+┌─────────────────────────────────────────────┐
+│      Data Layer (src/data/)                 │
+│  ┌────────────────────────────────────┐    │
+│  │  MockAlerts.ts                     │    │
+│  │  - 15 alertów testowych            │    │
+│  │  - Dane z różnych dat (0-7 dni)    │    │
+│  │  - isoDaysAgo() helper function    │    │
+│  └────────────────────────────────────┘    │
+└─────────────────────────────────────────────┘
+        │
+        │ Uses Types
+        ▼
+┌─────────────────────────────────────────────┐
+│      Types (src/types/)                     │
+│  ┌────────────────────────────────────┐    │
+│  │  Alert.ts                          │    │
+│  │  - AlertStatus: ALERT | WARNING    │    │
+│  │  - AlertState: NOT ASSIGNED |      │    │
+│  │    ASSIGNED                        │    │
+│  │  - Alert interface                 │    │
+│  └────────────────────────────────────┘    │
+└─────────────────────────────────────────────┘
+        │
+        │ Configuration
+        ▼
+┌─────────────────────────────────────────────┐
+│      Config (src/config/)                   │
+│  ┌────────────────────────────────────┐    │
+│  │  DataMode.ts                       │    │
+│  │  - DataMode: "local" | "live"      │    │
+│  │  - DATA_MODE = "local"             │    │
 │  └────────────────────────────────────┘    │
 └─────────────────────────────────────────────┘
 ```
@@ -170,41 +210,37 @@ frontend/
 
 ### 4.3 Definicje Typów TypeScript
 
+**Aktualnie Zaimplementowane:**
+
 ```typescript
-// src/types/alert.ts
+// src/types/Alert.ts
 
-export enum AlertSeverity {
-  INFO = 'info',
-  WARNING = 'warning',
-  CRITICAL = 'critical'
-}
-
-export enum AlertStatus {
-  NEW = 'new',
-  ACKNOWLEDGED = 'acknowledged',
-  RESOLVED = 'resolved'
-}
-
-export enum PDCAPhase {
-  PLAN = 'plan',
-  DO = 'do',
-  CHECK = 'check',
-  ACT = 'act'
-}
+export type AlertStatus = "ALERT" | "WARNING";
+export type AlertState = "NOT ASSIGNED" | "ASSIGNED";
 
 export interface Alert {
   id: string;
-  timestamp: Date;
-  severity: AlertSeverity;
   status: AlertStatus;
-  title: string;
-  message: string;
-  source: string;
-  topic: string;
-  pdcaPhase?: PDCAPhase;
-  metadata?: Record<string, any>;
+  parameter: string;
+  value: number;
+  threshold: number;
+  timestamp: string;
+  machine: string;
+  state: AlertState;
 }
+```
 
+**Uwagi o implementacji:**
+- ✅ Zdefiniowano prosty typ `AlertStatus` z dwoma wartościami: ALERT i WARNING
+- ✅ Dodano typ `AlertState` do śledzenia stanu przypisania alertu
+- ✅ Interfejs `Alert` zawiera podstawowe informacje o alercie
+- ❌ Usunięto pole `pdcaPhase` - faza PDCA będzie przypisywana później przez kierownika
+- ❌ Usunięto pole `assignee` - zastąpiono przez `state`
+- 🔜 W przyszłości: rozszerzenie o więcej informacji (opis, priorytet, zespoły)
+
+**Planowane (do implementacji z MQTT):**
+
+```typescript
 export interface MqttConfig {
   brokerUrl: string;
   clientId: string;
@@ -221,10 +257,95 @@ export interface ConnectionState {
 }
 ```
 
-### 4.4 Klient MQTT
+### 4.4 System Pobierania Danych (Data Layer)
+
+**Aktualnie Zaimplementowane - Tryb Lokalny:**
 
 ```typescript
-// src/api/mqttClient.ts
+// src/config/DataMode.ts
+export type DataMode = "local" | "live";
+
+export const DATA_MODE: DataMode = "local";
+```
+
+**Uwagi:**
+- ✅ Zdefiniowano typ `DataMode` z dwoma trybami: local (mockowane dane) i live (MQTT/API)
+- ✅ Obecnie ustawiony tryb "local" dla rozwoju i testowania
+- 🔜 Przełącznik na "live" zostanie aktywowany po implementacji MQTT
+
+```typescript
+// src/api/Alerts.ts
+import type { Alert } from "../types/Alert";
+import { DATA_MODE } from "../config/DataMode";
+import { getLocalAlerts } from "./LocalAlerts";
+
+export function getAlerts(): Alert[] {
+  if (DATA_MODE === "local") {
+    return getLocalAlerts();
+  }
+  
+  // W przyszłości: MQTT/WebSocket connection
+  return [];
+}
+```
+
+**Uwagi:**
+- ✅ Główny interfejs API dla pobierania alertów
+- ✅ Automatyczne przełączanie między trybem lokalnym a live
+- ✅ Prosty, rozszerzalny design
+- 🔜 Miejsce na implementację MQTT client
+
+```typescript
+// src/api/LocalAlerts.ts
+import type { Alert } from "../types/Alert";
+import { mockAlerts } from "../data/MockAlerts";
+
+export function getLocalAlerts(): Alert[] {
+  return mockAlerts;
+}
+```
+
+**Uwagi:**
+- ✅ Prosty wrapper zwracający mockowane dane
+- ✅ W przyszłości może filtrować/transformować dane
+
+```typescript
+// src/data/MockAlerts.ts
+import type { Alert } from "../types/Alert";
+
+const now = new Date();
+const isoDaysAgo = (days: number) =>
+  new Date(now.getTime() - days * 24 * 60 * 60 * 1000).toISOString();
+
+export const mockAlerts: Alert[] = [
+  {
+    id: "1",
+    status: "ALERT",
+    parameter: "PRESSURE",
+    value: 5.3,
+    threshold: 4.4,
+    timestamp: isoDaysAgo(0),
+    machine: "TestMachine001",
+    state: "NOT ASSIGNED",
+  },
+  // ... 14 więcej alertów
+];
+```
+
+**Uwagi:**
+- ✅ 15 testowych alertów
+- ✅ Dynamiczne timestampy używające funkcji `isoDaysAgo()`
+- ✅ Różne typy alertów (ALERT/WARNING)
+- ✅ Różne parametry (PRESSURE, TEMPERATURE, VIBRATION)
+- ✅ Wszystkie w stanie "NOT ASSIGNED"
+- ✅ Dane z ostatnich 7 dni (0-7 dni wstecz)
+
+---
+
+### 4.5 Klient MQTT (Planowany - Do Implementacji)
+
+```typescript
+// src/api/mqttClient.ts - DO IMPLEMENTACJI
 import mqtt, { MqttClient } from 'mqtt';
 import { MqttConfig, Alert } from '../types/alert';
 
@@ -470,74 +591,126 @@ export function useMqtt(config: MqttConfig) {
 
 ### 4.6 Komponenty UI
 
-#### DashboardPage Component
+#### DashboardPage Component - Aktualnie Zaimplementowane
+
 ```typescript
 // src/pages/DashboardPage.tsx
-import { useMqtt } from '../hooks/useMqtt';
-import { AlertList } from '../components/AlertList';
-import { ConnectionStatus } from '../components/ConnectionStatus';
+import { getAlerts } from "../api/Alerts";
 
 function DashboardPage() {
-  const mqttConfig = {
-    brokerUrl: import.meta.env.VITE_MQTT_BROKER_URL || 'ws://localhost:8080',
-    clientId: `pdca-dashboard-${Math.random().toString(16).slice(2)}`,
-    username: import.meta.env.VITE_MQTT_USERNAME,
-    password: import.meta.env.VITE_MQTT_PASSWORD,
-    topics: [
-      'pdca/alerts/#',
-      'pdca/quality/#'
-    ]
-  };
+  const alerts = getAlerts();
+  const now = new Date();
 
-  const { alerts, connectionState, clearAlerts } = useMqtt(mqttConfig);
+  // Filtracja: Dzisiejsze alerty
+  const todaysAlerts = alerts.filter((alert) => {
+    const ts = new Date(alert.timestamp);
+    return (
+      ts.getFullYear() === now.getFullYear() &&
+      ts.getMonth() === now.getMonth() &&
+      ts.getDate() === now.getDate()
+    );
+  });
+
+  // Filtracja: Alerty z ostatnich 7 dni
+  const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const unassignedLast7Days = alerts.filter((alert) => {
+    const ts = new Date(alert.timestamp);
+    return ts >= sevenDaysAgo && ts <= now;
+  });
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
-      {/* Header */}
-      <header className="bg-white dark:bg-slate-800 shadow">
-        <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center">
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-              PDCA Alert Dashboard
-            </h1>
-            <ConnectionStatus state={connectionState} />
-          </div>
-        </div>
-      </header>
+    <div className="space-y-6">
+      {/* Sekcja: Dzisiejsze Alerty */}
+      <section className="bg-slate-800/80 rounded-xl p-4">
+        <h2 className="text-lg font-semibold mb-2">Dzisiejsze alerty</h2>
+        <ul className="space-y-2 text-sm">
+          {todaysAlerts.map((alert) => (
+            <li
+              key={alert.id}
+              className="flex justify-between items-center rounded-lg bg-slate-900/70 px-3 py-2"
+            >
+              <div>
+                <div className="font-medium">
+                  {alert.machine} – {alert.parameter}
+                </div>
+                <div className="text-slate-300">
+                  status: {alert.status} • value: {alert.value} (threshold:{" "}
+                  {alert.threshold})
+                </div>
+              </div>
+              <div className="text-xs text-slate-400">{alert.state}</div>
+            </li>
+          ))}
+        </ul>
+      </section>
 
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
-        {/* Statistics */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <StatCard 
-            title="Total Alerts" 
-            value={alerts.length} 
-            color="blue" 
-          />
-          <StatCard 
-            title="Critical" 
-            value={alerts.filter(a => a.severity === 'critical').length} 
-            color="red" 
-          />
-          <StatCard 
-            title="Warnings" 
-            value={alerts.filter(a => a.severity === 'warning').length} 
-            color="yellow" 
-          />
-        </div>
-
-        {/* Alert List */}
-        <AlertList 
-          alerts={alerts} 
-          onClear={clearAlerts}
-        />
-      </main>
+      {/* Sekcja: Nieprzypisane z 7 dni */}
+      <section className="bg-slate-800/80 rounded-xl p-4">
+        <h2 className="text-lg font-semibold mb-2">
+          Nieprzypisane alerty z ostatnich 7 dni
+        </h2>
+        <ul className="space-y-2 text-sm">
+          {unassignedLast7Days.map((alert) => (
+            <li
+              key={alert.id}
+              className="flex justify-between items-center rounded-lg bg-slate-900/70 px-3 py-2"
+            >
+              <div>
+                <div className="font-medium">
+                  {alert.machine} – {alert.parameter}
+                </div>
+                <div className="text-slate-300">
+                  status: {alert.status} • value: {alert.value} (threshold:{" "}
+                  {alert.threshold})
+                </div>
+              </div>
+              <div className="text-xs text-slate-400">{alert.state}</div>
+            </li>
+          ))}
+        </ul>
+      </section>
     </div>
   );
 }
 
 export default DashboardPage;
 ```
+
+**Kluczowe Cechy Implementacji:**
+- ✅ **Filtracja dzisiejszych alertów**: Porównanie roku, miesiąca i dnia
+- ✅ **Filtracja 7-dniowa**: Użycie kalkulacji z Date objects
+- ✅ **Responsive UI**: Tailwind CSS klasy (bg-slate-800, rounded-xl)
+- ✅ **Czytelne karty**: Każdy alert w osobnej karcie z parametrami
+- ✅ **Stan alertu**: Wyświetlanie pola `state` (NOT ASSIGNED/ASSIGNED)
+- 🔜 **Do dodania**: Przyciski akcji (Assign to me, View details)
+- 🔜 **Do dodania**: Statystyki (liczniki alertów, wykresy)
+- 🔜 **Do dodania**: Paginacja dla dużej ilości alertów
+
+#### App Component - Root Layout
+
+```typescript
+// src/App.tsx
+import DashboardPage from "./pages/DashboardPage";
+
+function App() {
+  return (
+    <div className="min-h-screen bg-slate-900 text-slate-100 p-4">
+      <h1 className="text-2xl font-bold mb-4">PDCA Alert Dashboard</h1>
+      <DashboardPage />
+    </div>
+  );
+}
+
+export default App;
+```
+
+**Kluczowe Cechy:**
+- ✅ **Ciemny motyw**: bg-slate-900 + text-slate-100
+- ✅ **Minimalistyczny layout**: Tytuł + dashboard
+- ✅ **Full screen**: min-h-screen
+- 🔜 **Do dodania**: Navigation bar
+- 🔜 **Do dodania**: User profile/logout
+- 🔜 **Do dodania**: Routing (React Router)
 
 #### AlertList Component
 ```typescript
@@ -803,27 +976,119 @@ useEffect(() => {
 
 ## 9. Wnioski
 
-### 9.1 Osiągnięcia
-- ✅ Zbudowano działający dashboard z połączeniem MQTT
-- ✅ Zaimplementowano odbieranie alertów w czasie rzeczywistym
-- ✅ Stworzono typowany interfejs z TypeScript
-- ✅ Użyto nowoczesnych narzędzi (React 19, Vite 7, Tailwind CSS v4)
-- ✅ Osiągnięto wysoką wydajność (< 1s opóźnienie)
+### 9.1 Osiągnięcia - Etap Obecny (Dashboard Layout & Data Layer)
+- ✅ **Struktura projektu**: Zorganizowana architektura z podziałem na api/, data/, types/, config/
+- ✅ **Tryb lokalny**: Zaimplementowano system przełączania między local/live mode
+- ✅ **Mock data**: 15 testowych alertów z dynamicznymi timestampami
+- ✅ **Typy TypeScript**: Zdefiniowano AlertStatus, AlertState, Alert interface
+- ✅ **Dashboard UI**: Funkcjonalny dashboard z dwiema sekcjami filtracji
+- ✅ **Filtracja dat**: Dzisiejsze alerty + ostatnie 7 dni
+- ✅ **Tailwind CSS v4**: Skonfigurowano z pluginem @tailwindcss/vite
+- ✅ **Responsive design**: Użycie Tailwind do stylowania komponentów
 
-### 9.2 Wyzwania
-- Integracja Tailwind CSS v4 wymagała dodatkowego pluginu
-- Konfiguracja MQTT WebSocket wymagała rozwiązania problemów CORS
-- Zarządzanie lifecycle'em połączenia MQTT w React hooks
+### 9.2 Zmiany w Stosunku do Początkowego Planu
+- ⚠️ **MQTT nie zaimplementowany**: Zdecydowano o start w trybie lokalnym
+- ⚠️ **Brak pdcaPhase w Alert**: Usunięto to pole - faza będzie przypisywana przez kierownika
+- ⚠️ **Zmiana assignee → state**: Prosta flaga "NOT ASSIGNED"/"ASSIGNED" zamiast nazwy osoby
+- ✅ **Uproszczony typ Alert**: Skupiono się na kluczowych polach (machine, parameter, value, threshold)
 
-### 9.3 Następne Kroki
-1. **Etap 2**: Implementacja filtrowania i sortowania alertów
-2. **Etap 3**: Dodanie historii alertów z zapisem do bazy danych
-3. **Etap 4**: Implementacja powiadomień push
-4. **Etap 5**: Panel administracyjny do zarządzania topicami
-5. **Etap 6**: Wizualizacje i wykresy dla cyklu PDCA
-6. **Etap 7**: Integracja z backendem do persystencji danych
-7. **Etap 8**: Testy jednostkowe i integracyjne
-8. **Etap 9**: Deployment i CI/CD
+### 9.3 Problemy i Rozwiązania
+
+#### Problem 1: Tailwind CSS v4 Configuration
+**Opis**: Tailwind CSS nie działał po instalacji  
+**Przyczyna**: Brak pluginu @tailwindcss/vite w konfiguracji Vite  
+**Rozwiązanie**:
+```bash
+npm install -D @tailwindcss/vite
+```
+```typescript
+// vite.config.ts
+import tailwindcss from '@tailwindcss/vite'
+plugins: [react(), tailwindcss()]
+```
+
+#### Problem 2: Zmiana struktury alertów
+**Opis**: Początkowe dane miały assignee i pdcaPhase  
+**Przyczyna**: Zmiana podejścia do workflow - faza PDCA przypisywana przez kierownika  
+**Rozwiązanie**: 
+- Usunięto `pdcaPhase` z typu Alert
+- Zastąpiono `assignee?: string` przez `state: AlertState`
+- Zaktualizowano mock data
+
+#### Problem 3: Filtracja czasu wymaga precyzji
+**Opis**: Filtracja "dzisiejsze" i "7 dni" musi być precyzyjna  
+**Rozwiązanie**: 
+```typescript
+// Dzisiejsze - porównanie rok, miesiąc, dzień
+ts.getFullYear() === now.getFullYear() &&
+ts.getMonth() === now.getMonth() &&
+ts.getDate() === now.getDate()
+
+// 7 dni - zakres dat
+const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+ts >= sevenDaysAgo && ts <= now
+```
+
+### 9.4 Następne Kroki - Roadmap
+
+#### ⏭️ Najbliższe Kroki (Etap 2):
+1. **Przyciski akcji na alertach**
+   - "Assign to me" button
+   - "View details" modal/page
+   - Zmiana state z "NOT ASSIGNED" → "ASSIGNED"
+
+2. **Panel przypisania zespołów**
+   - Lista dostępnych zespołów (Maintenance, Quality, Production)
+   - Multi-select zespołów
+   - Formularz definiowania zadań z wagami %
+
+3. **Typy dla workflow PDCA**
+   - Team type
+   - Task type (z wagą %)
+   - TaskAssignment type
+   - User type (Kierownik, Brygadzista, Członek)
+
+#### 🔮 Średnioterminowe (Etap 3-4):
+4. **Backend API**
+   - Node.js + Express lub ThingWorx REST API
+   - Endpoints dla alertów, zadań, zespołów
+   - Persystencja w bazie danych (PostgreSQL/MongoDB)
+
+5. **MQTT Integration**
+   - Implementacja klienta MQTT (mqtt.js)
+   - Połączenie z brokerem ThingWorx
+   - Subskrypcja topików
+   - Real-time updates
+
+6. **Panel Brygadzisty**
+   - Lista przypisanych alertów
+   - Delegowanie zadań do członków zespołu
+   - Pasek postępu (% ukończenia)
+   - Raportowanie
+
+#### 📅 Długoterminowe (Etap 5-9):
+7. **Panel Członka Zespołu**
+   - Moje zadania
+   - Rozpocznij/Ukończ zadanie
+   - Notatki i dokumentacja
+
+8. **System Powiadomień**
+   - MQTT notifications
+   - Email/SMS dla krytycznych alertów
+   - In-app notifications
+
+9. **Analityka i Raporty**
+   - Dashboard kierownika z metrykami
+   - Wykresy efektywności zespołów
+   - Historia zamkniętych alertów
+   - Eksport raportów (PDF/Excel)
+
+10. **Testy i Deployment**
+    - Unit testy (Vitest)
+    - E2E testy (Playwright)
+    - CI/CD pipeline
+    - Docker containerization
+    - Production deployment
 
 ## 10. Bibliografia
 
@@ -837,7 +1102,65 @@ useEffect(() => {
 
 ---
 
+## 10. Podsumowanie Aktualnego Stanu Implementacji
+
+### ✅ Co Zostało Zaimplementowane:
+
+| Komponent | Status | Plik | Opis |
+|-----------|--------|------|------|
+| **Alert Type** | ✅ | `src/types/Alert.ts` | Typy: AlertStatus, AlertState, Alert interface |
+| **Mock Data** | ✅ | `src/data/MockAlerts.ts` | 15 alertów testowych z dynamicznymi datami |
+| **Data Mode Config** | ✅ | `src/config/DataMode.ts` | Przełącznik local/live |
+| **Local API** | ✅ | `src/api/LocalAlerts.ts` | Wrapper dla mock data |
+| **Alerts API** | ✅ | `src/api/Alerts.ts` | Główny interfejs getAlerts() |
+| **Dashboard Page** | ✅ | `src/pages/DashboardPage.tsx` | UI z filtrowaniem alertów |
+| **App Layout** | ✅ | `src/App.tsx` | Root component z layoutem |
+| **Tailwind v4** | ✅ | `vite.config.ts`, `index.css` | Konfiguracja i style |
+
+### 🔜 Co Będzie Implementowane Dalej:
+
+| Komponent | Priorytet | Etap | Opis |
+|-----------|-----------|------|------|
+| **Action Buttons** | 🔥 Wysoki | 2 | "Assign to me", "View details" |
+| **Team Types** | 🔥 Wysoki | 2 | Maintenance, Quality, Production |
+| **Task System** | 🔥 Wysoki | 2 | Typy Task, TaskAssignment |
+| **MQTT Client** | 🟡 Średni | 3 | Połączenie z brokerem |
+| **Backend API** | 🟡 Średni | 3 | REST endpoints |
+| **Brigade Panel** | 🟢 Niski | 4 | Panel brygadzisty |
+| **Notifications** | 🟢 Niski | 5 | System powiadomień |
+
+### 📊 Statystyki Projektu:
+
+```
+Pliki utworzone/zmodyfikowane:
+├── src/types/Alert.ts           [UTWORZONY]
+├── src/data/MockAlerts.ts       [ZMODYFIKOWANY - 15 alertów]
+├── src/config/DataMode.ts       [UTWORZONY]
+├── src/api/LocalAlerts.ts       [UTWORZONY]
+├── src/api/Alerts.ts            [UTWORZONY]
+├── src/pages/DashboardPage.tsx  [ZMODYFIKOWANY - filtracja]
+├── src/App.tsx                  [ZMODYFIKOWANY - layout]
+├── vite.config.ts               [ZMODYFIKOWANY - Tailwind]
+└── src/index.css                [ZMODYFIKOWANY - @import tailwindcss]
+
+Linie kodu:
+- TypeScript: ~200 linii
+- Mock Data: 15 obiektów Alert
+- Komponenty React: 2 (App, DashboardPage)
+```
+
+### 🎯 Metryki Jakości:
+
+- **Type Safety**: 100% (wszystkie komponenty typowane TypeScript)
+- **Errors**: 0 (brak błędów kompilacji)
+- **Warnings**: 0 (brak warningów ESLint)
+- **Build**: ✅ Sukces (npm run build)
+- **Dev Server**: ✅ Działa (npm run dev)
+
+---
+
 **Data utworzenia**: 16 listopada 2025  
+**Ostatnia aktualizacja**: 16 listopada 2025  
 **Autor**: System PDCA IoT Quality  
-**Wersja dokumentu**: 1.0  
-**Status**: ✅ Zaimplementowane i przetestowane
+**Wersja dokumentu**: 1.1  
+**Status**: 🟢 Dashboard Layout - Zaimplementowany | 🔴 MQTT - Nie zaimplementowany
