@@ -1,6 +1,5 @@
-export type AlertStatus = "ALERT" | "WARNING" | "INFO";
-
-export type PDCAPhase = "PLAN" | "DO" | "CHECK" | "ACT" | null;
+export type AlertStatus = "ALERT" | "WARNING";
+export type AlertState = "NOT ASSIGNED" | "ASSIGNED";
 
 export interface Alert {
   id: string;
@@ -10,6 +9,5 @@ export interface Alert {
   threshold: number;
   timestamp: string;
   machine: string;
-  assignee?: string;
-  pdcaPhase?: PDCAPhase;
+  state: AlertState;
 }
