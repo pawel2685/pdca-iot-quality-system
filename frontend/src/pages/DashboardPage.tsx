@@ -69,31 +69,35 @@ function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <section className="bg-slate-800/80 rounded-xl p-4">
-        <h2 className="text-lg font-semibold mb-2">Dzisiejsze alerty</h2>
+      <section className="rounded-xl p-4 border shadow-md" style={{ backgroundColor: '#3c3c3c', borderColor: '#2e2e2e' }}>
+        <h2 className="text-xl font-semibold mb-3">Dzisiejsze alerty</h2>
         <ul className="space-y-2 text-sm">
           {todaysAlerts.map((alert) => (
             <li
               key={alert.id}
-              className="flex justify-between items-center rounded-lg bg-slate-900/70 px-3 py-2"
+              className="flex items-center gap-8 rounded-lg px-6 py-5" 
+              style={{ backgroundColor: alert.status === 'ALERT' ? '#8b3a3a' : '#8b7d3a' }}
             >
-              <div>
-                <div className="font-medium">
-                  {alert.machine} – {alert.parameter}
-                </div>
-                <div className="text-slate-300">
-                  status: {alert.status} • value: {alert.value} (threshold:{" "}
-                  {alert.threshold})
-                </div>
+              <div className="text-5xl flex-shrink-0 animate-pulse">
+                {alert.status === 'ALERT' ? '🔴' : '⚠️'}
               </div>
-              <div className="text-xs text-slate-400">{alert.state}</div>
+              <div className="h-12 w-px bg-slate-400/30"></div>
+              <div className="font-bold text-xl min-w-[140px]">{alert.status}</div>
+              <div className="h-12 w-px bg-slate-400/30"></div>
+              <div className="font-semibold text-xl min-w-[200px]">{alert.machine}</div>
+              <div className="h-12 w-px bg-slate-400/30"></div>
+              <div className="flex items-center gap-12 flex-1 text-lg">
+                <div className="font-medium">{alert.parameter}</div>
+                <div>value: <span className="font-semibold">{alert.value}</span></div>
+                <div>threshold: <span className="font-semibold">{alert.threshold}</span></div>
+              </div>
+              <div className="text-xl text-slate-200 font-semibold">{alert.state}</div>
             </li>
           ))}
         </ul>
       </section>
 
-      <section className="bg-slate-800/80 rounded-xl p-4">
-        <section className="bg-slate-800/80 rounded-xl p-4">
+      <section className="rounded-xl p-4 border shadow-md" style={{ backgroundColor: '#3c3c3c', borderColor: '#2e2e2e' }}>
           <h2 className="text-lg font-semibold mb-2">
             Nieprzypisane alerty z ostatnich 7 dni
           </h2>
@@ -101,23 +105,26 @@ function DashboardPage() {
             {unassignedLast7Days.map((alert) => (
               <li
                 key={alert.id}
-                className="flex justify-between items-center rounded-lg bg-slate-900/70 px-3 py-2"
+                className="flex items-center gap-8 rounded-lg px-6 py-5" 
+                style={{ backgroundColor: alert.status === 'ALERT' ? '#8b3a3a' : '#8b7d3a' }}
               >
-                <div>
-                  <div className="font-medium">
-                    {alert.machine} – {alert.parameter}
-                  </div>
-                  <div className="text-slate-300">
-                    status: {alert.status} • value: {alert.value} (threshold:{" "}
-                    {alert.threshold})
-                  </div>
+                <div className="text-5xl flex-shrink-0 animate-pulse">
+                  {alert.status === 'ALERT' ? '🔴' : '⚠️'}
                 </div>
-                <div className="text-xs text-slate-400">{alert.state}</div>
+                <div className="h-12 w-px bg-slate-400/30"></div>
+                <div className="font-bold text-xl min-w-[140px]">{alert.status}</div>
+                <div className="h-12 w-px bg-slate-400/30"></div>
+                <div className="font-semibold text-xl min-w-[200px]">{alert.machine}</div>
+                <div className="h-12 w-px bg-slate-400/30"></div>
+                <div className="flex items-center gap-12 flex-1 text-lg">
+                  <div className="font-medium">{alert.parameter}</div>
+                  <div>value: <span className="font-semibold">{alert.value}</span></div>
+                  <div>threshold: <span className="font-semibold">{alert.threshold}</span></div>
+                </div>
+                <div className="text-xl text-slate-200 font-semibold">{alert.state}</div>
               </li>
             ))}
           </ul>
-        </section>
-
       </section>
     </div>
   );
