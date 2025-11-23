@@ -1,7 +1,9 @@
 import type { Alert } from "../types/Alert";
 
+const BASE_API_URL = import.meta.env.VITE_BASE_API_URL;
+
 export async function getLiveAlerts(): Promise<Alert[]> {
-  const response = await fetch("http://localhost:4000/api/live-alerts");
+  const response = await fetch(`${BASE_API_URL}/live-alerts`);
 
   if (!response.ok) {
     throw new Error("Failed to fetch live alerts");
