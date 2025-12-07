@@ -1,5 +1,6 @@
 import { useState } from "react";
 import logo from "../assets/images/logo.png";
+import { API_BASE_URL } from "../config/ApiConfig";
 
 function SignUpPage() {
   const [name, setName] = useState("");
@@ -7,11 +8,51 @@ function SignUpPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
-  const handleSubmit = (e: React.FormEvent) => {
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Sign up attempt:", { name, lastName, email, password, confirmPassword });
-  };
+    setError("");
+    setSuccess("");
+
+    if (password !== confirmPassword) {
+      setError("Passwords do not match.");
+      return;
+    } 
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/auth/signup`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+         body: JSON.stringify({
+        email,
+        firstName: name,
+        lastName,
+        password,
+        confirmPassword,
+      }),
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      setError(data.message || "Sign up failed.");
+      return;
+    }
+    
+    setSuccess("Sign up successful! You can now sign in.");
+    setName("");
+    setLastName("");  
+    setEmail("");
+    setPassword("");
+    setConfirmPassword("");
+  } catch (err) {
+    setError("An unexpected error occurred.");
+    console.error("Sign up error:", (err as Error).message);
+  } 
+};
+
 
   return (
     <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#2e2e2e' }}>
@@ -20,6 +61,18 @@ function SignUpPage() {
           <img src={logo} alt="Logo" className="h-24 w-auto rounded-lg mb-4" />
           <h1 className="text-2xl font-semibold text-slate-100">Sign up to PDCA Alert Manager</h1>
         </div>
+
+        {error && (
+          <div className="mb-4 p-3 rounded-lg bg-red-600 text-white text-sm">
+            {error}
+          </div>
+        )}
+
+        {success && (
+          <div className="mb-4 p-3 rounded-lg bg-green-600 text-white text-sm">
+            {success}
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
