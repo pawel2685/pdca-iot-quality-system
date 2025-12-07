@@ -45,13 +45,13 @@ export async function loginUser(input: LoginInput): Promise<AuthenticatedUser> {
     const user = await findUserByEmail(input.email);
 
     if (!user) {
-        throw new Error("Invalid email or password");
+        throw new Error("Invalid credentials");
     }
 
     const isPasswordValid = await bcrypt.compare(input.password, user.passwordHash);
 
     if (!isPasswordValid) {
-        throw new Error("Invalid email or password");
+        throw new Error("Invalid credentials");
     }
 
     return {

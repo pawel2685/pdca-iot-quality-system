@@ -46,7 +46,7 @@ const { email, password } = req.body ?? {};
     } catch (err) {
         const message = (err as Error).message;
 
-        if (message === "Invalid email or password") {
+        if (message === "Invalid credentials") {
             return res.status(401).json({ message });
         }
 

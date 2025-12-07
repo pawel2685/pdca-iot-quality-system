@@ -1,13 +1,41 @@
 import { useState } from "react";
 import logo from "../assets/images/logo.png";
+import { API_BASE_URL } from "../config/ApiConfig";
 
 function SignInPage() {
   const [login, setLogin] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
-  const handleSubmit = (e: React.FormEvent) => {
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Sign in attempt:", { login, password });
+    setError("");
+    setSuccess("");
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/auth/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email: login, password }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.message ?? "Login failed");
+        return;
+      }
+
+      setSuccess(`Logged in as ${data.firstName} ${data.lastName} (${data.role})`);
+      setPassword("");
+    } catch (err) {
+      setError("Network error. Please try again.");
+      console.error("Sign-in error:", err);
+    }
   };
 
   return (
@@ -21,7 +49,7 @@ function SignInPage() {
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
             <label htmlFor="login" className="block text-sm font-medium text-slate-200 mb-2">
-              Login
+              Email
             </label>
             <input
               type="text"
@@ -48,7 +76,17 @@ function SignInPage() {
               required
             />
           </div>
+          {error && (
+            <p className="text-sm text-red-400">
+              {error}
+            </p>
+          )}
 
+          {success && (
+            <p className="text-sm text-emerald-400">
+              {success}
+            </p>
+          )}
           <button
             type="submit"
             className="w-full py-3 rounded-lg font-semibold text-white transition-colors"
