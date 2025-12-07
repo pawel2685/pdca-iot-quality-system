@@ -1,6 +1,7 @@
 import { createMqttClient } from "./mqtt/MqttClient";
 import { startHttpServer } from "./http/server";
 import { db } from "./db/Connection";   
+import { registerUser } from "./auth/AuthService";
 
 console.log("Backend PDCA / MQTT startuje");
 
