@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { registerUser } from "../../auth/AuthService";
+import { registerUser, loginUser } from "../../auth/AuthService";
 
 export const authRouter = Router();
 
@@ -32,3 +32,26 @@ authRouter.post("/signup", async (req, res) => {
         return res.status(500).json({ message: "Internal server error." });
     }
 });
+
+authRouter.post("/login", async (req, res) => {
+const { email, password } = req.body ?? {};
+
+    if (!email || !password) {
+        return res.status(400).json({ message: "Email and password are required." });
+    }   
+
+    try {
+        const user = await loginUser({ email, password });
+        return res.status(200).json(user);
+    } catch (err) {
+        const message = (err as Error).message;
+
+        if (message === "Invalid email or password") {
+            return res.status(401).json({ message });
+        }
+
+        console.error("Error logging in user:", message);
+        return res.status(500).json({ message: "Internal server error." });
+    }
+});
+
