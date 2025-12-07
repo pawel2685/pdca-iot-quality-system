@@ -13,11 +13,11 @@ export async function createUser(newUser: NewUser): Promise<number> {
 
 export async function findUserByEmail(email: string): Promise<User | null> {
     const [rows] = await db.query(
-        `SELECT ID, EMAIL, FIRSTNAME, LASTNAME, PASSWORD_HASH, ROLE, CREATED_AT, UPDATED_AT
+        `SELECT ID, EMAIL, FIRSTNAME, LASTNAME, PASSWORD_HASH, ROLE, CREATE_DATE, UPDATE_DATE
          FROM USERS WHERE EMAIL = ?`,
         [email]
     );
-    const resultRows = rows as User[];
+    const resultRows = rows as any[];
     if (resultRows.length === 0) {
         return null;
     }
@@ -25,14 +25,14 @@ export async function findUserByEmail(email: string): Promise<User | null> {
     const row = resultRows[0];
 
     const user: User = {
-        id: row.id,
-        email: row.email,
-        firstName: row.firstName,
-        lastName: row.lastName,
-        passwordHash: row.passwordHash,
-        role: row.role,
-        createDate: row.createDate,
-        updateDate: row.updateDate,
+        id: row.ID,
+        email: row.EMAIL,
+        firstName: row.FIRSTNAME,
+        lastName: row.LASTNAME,
+        passwordHash: row.PASSWORD_HASH,
+        role: row.ROLE,
+        createDate: row.CREATE_DATE,
+        updateDate: row.UPDATE_DATE,
     };
 
     return user;
