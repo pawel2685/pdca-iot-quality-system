@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import logo from "../assets/images/logo.png";
 import { API_BASE_URL } from "../config/ApiConfig";
+import { useAuth } from "../auth/AuthContext";
 
 function SignInPage() {
   const [login, setLogin] = useState("");
@@ -10,6 +11,7 @@ function SignInPage() {
   const [success, setSuccess] = useState("");
 
   const navigate = useNavigate();
+  const { setUser } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,6 +33,14 @@ function SignInPage() {
         setError(data.message ?? "Login failed");
         return;
       }
+
+      setUser({
+        id: data.id,
+        email: data.email,
+        firstName: data.firstName,
+        lastName: data.lastName,
+        role: data.role,
+      });
 
       setSuccess(`Logged in as ${data.firstName} ${data.lastName} (${data.role})`);
       setPassword("");
