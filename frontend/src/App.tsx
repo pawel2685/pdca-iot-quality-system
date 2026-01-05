@@ -3,6 +3,7 @@ import DashboardPage from "./pages/DashboardPage";
 import SignInPage from "./pages/SignInPage";
 import SignUpPage from "./pages/SignUpPage";
 import ManagerDashboardPage from "./pages/ManagerDashboardPage";
+import EmployeeDashboardPage from "./pages/EmployeeDashboardPage";
 import logo from "./assets/images/logo.png";
 
 function App() {
@@ -40,6 +41,7 @@ function App() {
           </div>
         } />
         <Route path="/manager" element={<ManagerDashboardPage />} />
+        <Route path="/employee" element={<EmployeeDashboardPage />} />
       </Routes>
     </BrowserRouter>
   );
