@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Link } from "react-router-dom";
 import DashboardPage from "./pages/DashboardPage";
 import SignInPage from "./pages/SignInPage";
 import SignUpPage from "./pages/SignUpPage";
+import ManagerDashboardPage from "./pages/ManagerDashboardPage";
 import logo from "./assets/images/logo.png";
 
 function App() {
@@ -32,12 +33,13 @@ function App() {
                 </Link>
               </div>
             </header>
-            
+
             <main className="p-6">
               <DashboardPage />
             </main>
           </div>
         } />
+        <Route path="/manager" element={<ManagerDashboardPage />} />
       </Routes>
     </BrowserRouter>
   );
