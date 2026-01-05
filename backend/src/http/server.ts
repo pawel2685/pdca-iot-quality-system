@@ -1,9 +1,12 @@
 import express from "express";
 import { getLiveAlerts } from "../alerts/LiveAlertsStore";
 import { authRouter } from "./routes/AuthRoutes";
+import { pdcaRouter } from "./routes/PdcaRoutes";
 
 export function startHttpServer(port: number) {
   const app = express();
+
+  app.use(express.json());
 
   app.use((_req, res, next) => {
     res.header("Access-Control-Allow-Origin", "*");
@@ -12,10 +15,11 @@ export function startHttpServer(port: number) {
     next();
   });
 
-  app.use(express.json());
   app.use("/auth", authRouter);
 
-  app.get("/live-alerts", (_req, res) => {
+  app.use("/pdca", pdcaRouter);
+
+  app.get("/api/live-alerts", (_req, res) => {
     const alerts = getLiveAlerts();
     res.json(alerts);
   });
