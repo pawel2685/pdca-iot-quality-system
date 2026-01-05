@@ -4,6 +4,7 @@ import SignInPage from "./pages/SignInPage";
 import SignUpPage from "./pages/SignUpPage";
 import ManagerDashboardPage from "./pages/ManagerDashboardPage";
 import EmployeeDashboardPage from "./pages/EmployeeDashboardPage";
+import { RequireRole } from "./auth/RequireRole";
 import logo from "./assets/images/logo.png";
 
 function App() {
@@ -40,8 +41,12 @@ function App() {
             </main>
           </div>
         } />
-        <Route path="/manager" element={<ManagerDashboardPage />} />
-        <Route path="/employee" element={<EmployeeDashboardPage />} />
+        <Route element={<RequireRole allowedRoles={["MANAGER", "SUPERVISOR"]} />}>
+          <Route path="/manager" element={<ManagerDashboardPage />} />
+        </Route>
+        <Route element={<RequireRole />}>
+          <Route path="/employee" element={<EmployeeDashboardPage />} />
+        </Route>
       </Routes>
     </BrowserRouter>
   );
