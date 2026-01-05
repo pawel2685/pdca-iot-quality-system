@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type { Alert } from "../types/Alert";
 import { getAlerts } from "../api/Alerts";
+import AppHeader from "../components/AppHeader";
 
 function ManagerDashboardPage() {
     const [unassignedAlerts, setUnassignedAlerts] = useState<Alert[]>([]);
@@ -63,17 +64,7 @@ function ManagerDashboardPage() {
 
     return (
         <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col">
-            <header className="h-16 border-b border-slate-800 flex items-center justify-between px-6">
-                <div className="text-lg font-semibold">
-                    PDCA Alert Manager – Manager Dashboard
-                </div>
-                <div className="text-sm">
-                    Logged in as: <span className="font-medium">John Doe</span>
-                    <span className="ml-2 rounded-full bg-sky-600/20 px-3 py-1 text-xs border border-sky-600">
-                        ROLE: MANAGER
-                    </span>
-                </div>
-            </header>
+            <AppHeader title="Manager Dashboard" />
 
             <main className="flex-1 flex">
                 <section className="w-1/4 border-r border-slate-800 p-4 flex flex-col">
