@@ -3,6 +3,7 @@ import DashboardPage from "./pages/DashboardPage";
 import SignInPage from "./pages/SignInPage";
 import SignUpPage from "./pages/SignUpPage";
 import ManagerDashboardPage from "./pages/ManagerDashboardPage";
+import PdcaCaseDetailsPage from "./pages/PdcaCaseDetailsPage";
 import EmployeeDashboardPage from "./pages/EmployeeDashboardPage";
 import { RequireRole } from "./auth/RequireRole";
 import logo from "./assets/images/logo.png";
@@ -43,6 +44,7 @@ function App() {
         } />
         <Route element={<RequireRole allowedRoles={["MANAGER", "SUPERVISOR"]} />}>
           <Route path="/manager" element={<ManagerDashboardPage />} />
+          <Route path="/manager/cases/:caseId" element={<PdcaCaseDetailsPage />} />
         </Route>
         <Route element={<RequireRole />}>
           <Route path="/employee" element={<EmployeeDashboardPage />} />

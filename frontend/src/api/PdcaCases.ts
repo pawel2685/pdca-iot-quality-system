@@ -1,6 +1,19 @@
 import { API_BASE_URL } from '../config/ApiConfig';
 
-export async function createPdcaCaseFromAlert(alertId: string, userId: number): Promise<void> {
+export interface CreatePdcaCaseResponse {
+    id: number;
+    alertId: string;
+    title: string;
+    description: string | null;
+    ownerUserId: number;
+    createdByUserId: number;
+    phase: string;
+    status: string;
+    createDate: string;
+    updateDate: string;
+}
+
+export async function createPdcaCaseFromAlert(alertId: string, userId: number): Promise<CreatePdcaCaseResponse> {
     const response = await fetch(`${API_BASE_URL}/pdca/cases/from-alert`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -11,4 +24,6 @@ export async function createPdcaCaseFromAlert(alertId: string, userId: number): 
         const errorData = await response.json();
         throw new Error(errorData.message);
     }
+
+    return response.json();
 }
