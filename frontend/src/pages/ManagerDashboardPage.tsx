@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import type { Alert } from "../types/Alert";
 import { getUnassignedAlerts } from "../api/UnassignedAlerts";
 import AppHeader from "../components/AppHeader";
@@ -7,8 +8,9 @@ import { createPdcaCaseFromAlert } from "../api/PdcaCases";
 
 function ManagerDashboardPage() {
     const { user } = useAuth();
+    const navigate = useNavigate();
     const [unassignedAlerts, setUnassignedAlerts] = useState<Alert[]>([]);
-    const [assignedAlerts, setAssignedAlerts] = useState<Alert[]>([]);
+    const [assignedAlerts, setAssignedAlerts] = useState<(Alert & { caseId: number })[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [assignError, setAssignError] = useState<string | null>(null);
@@ -54,12 +56,12 @@ function ManagerDashboardPage() {
         setAssigningId(alert.id);
 
         try {
-            await createPdcaCaseFromAlert(alert.id, user.id);
+            const pdcaCase = await createPdcaCaseFromAlert(alert.id, user.id);
 
             setUnassignedAlerts((prev) => prev.filter((a) => a.id !== alert.id));
             setAssignedAlerts((prev) => [
                 ...prev,
-                { ...alert, state: "ASSIGNED" },
+                { ...alert, state: "ASSIGNED", caseId: pdcaCase.id },
             ]);
         } catch (error) {
             setAssignError(error instanceof Error ? error.message : "Failed to assign alert");
@@ -245,9 +247,7 @@ function ManagerDashboardPage() {
                                             <button
                                                 type="button"
                                                 className="text-xs px-3 py-1 rounded border border-sky-500 text-sky-100 hover:bg-sky-500/10 ml-2"
-                                                onClick={() => {
-                                                    console.log("Details for alert", alert.id);
-                                                }}
+                                                onClick={() => navigate(`/manager/cases/${alert.caseId}`)}
                                             >
                                                 Details
                                             </button>
