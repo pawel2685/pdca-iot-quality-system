@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import type { Alert } from "../types/Alert";
-import { getAlerts } from "../api/Alerts";
+import { getUnassignedAlerts } from "../api/UnassignedAlerts";
 import AppHeader from "../components/AppHeader";
 import { useAuth } from "../auth/AuthContext";
 import { createPdcaCaseFromAlert } from "../api/PdcaCases";
@@ -21,10 +21,10 @@ function ManagerDashboardPage() {
             try {
                 setLoading(true);
                 setError(null);
-                const data = await getAlerts();
+                const data = await getUnassignedAlerts(7);
                 if (isMounted) {
-                    setUnassignedAlerts(data.filter((a) => a.state === "NOT ASSIGNED"));
-                    setAssignedAlerts(data.filter((a) => a.state === "ASSIGNED"));
+                    setUnassignedAlerts(data);
+                    setAssignedAlerts([]);
                 }
             } catch {
                 if (isMounted) {
