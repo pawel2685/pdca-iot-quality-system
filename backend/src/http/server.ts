@@ -2,6 +2,7 @@ import express from "express";
 import { getLiveAlerts } from "../alerts/LiveAlertsStore";
 import { authRouter } from "./routes/AuthRoutes";
 import { pdcaRouter } from "./routes/PdcaRoutes";
+import { alertsRouter } from "./routes/AlertsRoutes";
 
 export function startHttpServer(port: number) {
   const app = express();
@@ -28,6 +29,8 @@ export function startHttpServer(port: number) {
   app.use("/auth", authRouter);
 
   app.use("/pdca", pdcaRouter);
+
+  app.use("/api", alertsRouter);
 
   app.get("/api/live-alerts", (_req, res) => {
     const alerts = getLiveAlerts();
