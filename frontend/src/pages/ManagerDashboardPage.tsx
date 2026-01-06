@@ -2,12 +2,17 @@ import { useEffect, useState } from "react";
 import type { Alert } from "../types/Alert";
 import { getAlerts } from "../api/Alerts";
 import AppHeader from "../components/AppHeader";
+import { useAuth } from "../auth/AuthContext";
+import { createPdcaCaseFromAlert } from "../api/PdcaCases";
 
 function ManagerDashboardPage() {
+    const { user } = useAuth();
     const [unassignedAlerts, setUnassignedAlerts] = useState<Alert[]>([]);
     const [assignedAlerts, setAssignedAlerts] = useState<Alert[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [assignError, setAssignError] = useState<string | null>(null);
+    const [assigningId, setAssigningId] = useState<string | null>(null);
 
     useEffect(() => {
         let isMounted = true;
@@ -39,12 +44,28 @@ function ManagerDashboardPage() {
         };
     }, []);
 
-    const handleAssignToMe = (alert: Alert) => {
-        setUnassignedAlerts((prev) => prev.filter((a) => a.id !== alert.id));
-        setAssignedAlerts((prev) => [
-            ...prev,
-            { ...alert, state: "ASSIGNED" },
-        ]);
+    const handleAssignToMe = async (alert: Alert) => {
+        if (!user) {
+            setAssignError("User not authenticated");
+            return;
+        }
+
+        setAssignError(null);
+        setAssigningId(alert.id);
+
+        try {
+            await createPdcaCaseFromAlert(alert.id, user.id);
+
+            setUnassignedAlerts((prev) => prev.filter((a) => a.id !== alert.id));
+            setAssignedAlerts((prev) => [
+                ...prev,
+                { ...alert, state: "ASSIGNED" },
+            ]);
+        } catch (error) {
+            setAssignError(error instanceof Error ? error.message : "Failed to assign alert");
+        } finally {
+            setAssigningId(null);
+        }
     };
 
     const renderStatusBadge = (status: Alert["status"]) => {
@@ -71,6 +92,12 @@ function ManagerDashboardPage() {
                     <h2 className="text-sm font-semibold mb-3 uppercase tracking-wide text-slate-300">
                         Unassigned alerts
                     </h2>
+
+                    {assignError && (
+                        <div className="mb-3 p-2 text-xs bg-red-900/40 border border-red-500 text-red-100 rounded">
+                            {assignError}
+                        </div>
+                    )}
 
                     <div className="flex-1 rounded-lg bg-slate-900/40 overflow-y-auto space-y-2">
                         {loading && (
@@ -119,10 +146,11 @@ function ManagerDashboardPage() {
 
                                                 <button
                                                     type="button"
-                                                    className="text-[11px] px-2 py-1 rounded border border-sky-500 text-sky-100 hover:bg-sky-500/10"
+                                                    className="text-[11px] px-2 py-1 rounded border border-sky-500 text-sky-100 hover:bg-sky-500/10 disabled:opacity-50"
                                                     onClick={() => handleAssignToMe(alert)}
+                                                    disabled={assigningId === alert.id}
                                                 >
-                                                    Assign to me
+                                                    {assigningId === alert.id ? "Assigning..." : "Assign to me"}
                                                 </button>
                                             </div>
                                         </div>

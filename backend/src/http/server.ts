@@ -15,6 +15,16 @@ export function startHttpServer(port: number) {
     next();
   });
 
+  app.use((_req, res, next) => {
+    if (_req.method === "OPTIONS") {
+      res.header("Access-Control-Allow-Origin", "*");
+      res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE");
+      res.header("Access-Control-Allow-Headers", "Content-Type");
+      return res.sendStatus(200);
+    }
+    next();
+  });
+
   app.use("/auth", authRouter);
 
   app.use("/pdca", pdcaRouter);
