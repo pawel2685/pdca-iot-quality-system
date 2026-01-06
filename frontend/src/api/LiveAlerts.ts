@@ -1,9 +1,14 @@
 import type { Alert } from "../types/Alert";
-
-const BASE_API_URL = import.meta.env.VITE_BASE_API_URL;
+import { API_BASE_URL } from "../config/ApiConfig";
+import { DATA_MODE } from "../config/DataMode";
+import { getLocalAlerts } from "./LocalAlerts";
 
 export async function getLiveAlerts(): Promise<Alert[]> {
-  const response = await fetch(`${BASE_API_URL}/live-alerts`);
+  if (DATA_MODE === "local") {
+    return getLocalAlerts();
+  }
+
+  const response = await fetch(`${API_BASE_URL}/api/live-alerts`);
 
   if (!response.ok) {
     throw new Error("Failed to fetch live alerts");
