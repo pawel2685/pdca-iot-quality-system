@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import AppHeader from "../components/AppHeader";
+import PdcaCaseHeader from "../components/PdcaCaseHeader";
 import { useAuth } from "../auth/AuthContext";
 import { getPdcaCaseDetails, type PdcaCaseDetailsResponse } from "../api/PdcaCases";
+import { mockTasks } from "../data/MockTasks";
 
 function PdcaCaseDetailsPage() {
     const { caseId } = useParams<{ caseId: string }>();
@@ -51,37 +53,43 @@ function PdcaCaseDetailsPage() {
     return (
         <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col">
             <AppHeader title="PDCA Case Details" />
-            <main className="flex-1 p-6">
-                <div className="max-w-4xl mx-auto space-y-6">
-                    {loading && (
-                        <div className="rounded-lg bg-slate-800/50 border border-slate-700 p-6 text-center">
-                            <p className="text-slate-400">Loading...</p>
-                        </div>
-                    )}
+            <main className="flex-1">
+                {data && !loading && (
+                    <div className="px-6 py-0">
+                        <PdcaCaseHeader phase={data.case.phase} tasks={mockTasks} />
+                    </div>
+                )}
+                <div className="p-6">
+                    <div className="max-w-4xl mx-auto space-y-6">
+                        {loading && (
+                            <div className="rounded-lg bg-slate-800/50 border border-slate-700 p-6 text-center">
+                                <p className="text-slate-400">Loading...</p>
+                            </div>
+                        )}
 
-                    {error && !loading && (
-                        <div className="rounded-lg bg-red-900/40 border border-red-500 p-6">
-                            <p className="text-red-100 font-semibold mb-3">Error</p>
-                            <p className="text-red-200 text-sm mb-4">{error}</p>
-                            <button
-                                type="button"
-                                className="px-3 py-1 text-sm rounded border border-red-500 text-red-100 hover:bg-red-500/10"
-                                onClick={() => navigate("/manager")}
-                            >
-                                Back to Dashboard
-                            </button>
-                        </div>
-                    )}
+                        {error && !loading && (
+                            <div className="rounded-lg bg-red-900/40 border border-red-500 p-6">
+                                <p className="text-red-100 font-semibold mb-3">Error</p>
+                                <p className="text-red-200 text-sm mb-4">{error}</p>
+                                <button
+                                    type="button"
+                                    className="px-3 py-1 text-sm rounded border border-red-500 text-red-100 hover:bg-red-500/10"
+                                    onClick={() => navigate("/manager")}
+                                >
+                                    Back to Dashboard
+                                </button>
+                            </div>
+                        )}
 
-                    {data && !loading && (
-                        <>
-                            <div className="rounded-lg bg-slate-800/50 border border-slate-700 p-6">
+                        {data && !loading && (
+                            <>
+                                <div className="rounded-lg bg-slate-800/50 border border-slate-700 p-6">
                                 <div className="flex justify-between items-start mb-4">
                                     <h2 className="text-xl font-bold">{data.case.title}</h2>
                                     <span className={`px-3 py-1 rounded-full text-xs font-semibold ${data.case.phase === "PLAN" ? "bg-blue-600/20 border border-blue-500 text-blue-100" :
-                                            data.case.phase === "DO" ? "bg-green-600/20 border border-green-500 text-green-100" :
-                                                data.case.phase === "CHECK" ? "bg-amber-600/20 border border-amber-500 text-amber-100" :
-                                                    "bg-purple-600/20 border border-purple-500 text-purple-100"
+                                        data.case.phase === "DO" ? "bg-green-600/20 border border-green-500 text-green-100" :
+                                            data.case.phase === "CHECK" ? "bg-amber-600/20 border border-amber-500 text-amber-100" :
+                                                "bg-purple-600/20 border border-purple-500 text-purple-100"
                                         }`}>
                                         {data.case.phase}
                                     </span>
@@ -166,6 +174,7 @@ function PdcaCaseDetailsPage() {
                             </div>
                         </>
                     )}
+                    </div>
                 </div>
             </main>
         </div>
