@@ -1,4 +1,5 @@
 export type TaskStatus = "NOT_STARTED" | "IN_PROGRESS" | "DONE" | "REJECTED";
+export type PhaseType = "PLAN" | "DO" | "CHECK" | "ACT";
 
 export interface Task {
     id: string;
@@ -6,6 +7,7 @@ export interface Task {
     assigneeName: string;
     status: TaskStatus;
     progressPercent: number;
+    phase: PhaseType;
 }
 
 export const mockTasks: Task[] = [
@@ -15,6 +17,7 @@ export const mockTasks: Task[] = [
         assigneeName: "John Smith",
         status: "DONE",
         progressPercent: 100,
+        phase: "PLAN",
     },
     {
         id: "2",
@@ -22,6 +25,7 @@ export const mockTasks: Task[] = [
         assigneeName: "Jane Doe",
         status: "IN_PROGRESS",
         progressPercent: 75,
+        phase: "DO",
     },
     {
         id: "3",
@@ -29,6 +33,7 @@ export const mockTasks: Task[] = [
         assigneeName: "Mike Johnson",
         status: "IN_PROGRESS",
         progressPercent: 50,
+        phase: "DO",
     },
     {
         id: "4",
@@ -36,6 +41,7 @@ export const mockTasks: Task[] = [
         assigneeName: "Sarah Wilson",
         status: "NOT_STARTED",
         progressPercent: 25,
+        phase: "CHECK",
     },
     {
         id: "5",

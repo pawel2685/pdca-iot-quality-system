@@ -22,6 +22,7 @@ function PdcaCaseDetailsPage() {
     const [error, setError] = useState<string | null>(null);
     const [data, setData] = useState<PdcaCaseDetailsResponse | null>(null);
     const [alert, setAlert] = useState<Alert | null>(null);
+    const [currentPhase, setCurrentPhase] = useState<string>("PLAN");
     const [tasks, setTasks] = useState<Task[]>(mockTasks);
     const [events, setEvents] = useState<CaseEvent[]>(eventsMock);
 
@@ -41,6 +42,7 @@ function PdcaCaseDetailsPage() {
                 if (isMounted) {
                     console.log("Loaded case details:", result);
                     setData(result);
+                    setCurrentPhase(result.case.phase);
 
                     if (result.alert) {
                         console.log("Alert from response:", result.alert);
@@ -103,6 +105,7 @@ function PdcaCaseDetailsPage() {
             assigneeName,
             status: "NOT_STARTED",
             progressPercent: 0,
+            phase: currentPhase as "PLAN" | "DO" | "CHECK" | "ACT",
         };
 
         setTasks((prevTasks) => [...prevTasks, newTask]);
@@ -115,6 +118,31 @@ function PdcaCaseDetailsPage() {
         };
         setEvents((prevEvents) => [newEvent, ...prevEvents]);
     };
+
+    const handleFinishPhase = () => {
+        const currentPhaseTasks = tasks.filter(task => task.phase === currentPhase);
+        const allTasksDone = currentPhaseTasks.length > 0 && currentPhaseTasks.every(task => task.status === "DONE");
+
+        if (!allTasksDone) return;
+
+        const phaseSequence = ["PLAN", "DO", "CHECK", "ACT"];
+        const currentIndex = phaseSequence.indexOf(currentPhase);
+        const nextPhase = currentIndex < phaseSequence.length - 1 ? phaseSequence[currentIndex + 1] : "CLOSED";
+
+        const newEvent: CaseEvent = {
+            id: `event-${Date.now()}`,
+            type: "PHASE_CHANGED",
+            message: `Phase changed: ${currentPhase} → ${nextPhase}`,
+            timestamp: new Date().toISOString(),
+        };
+
+        setEvents((prevEvents) => [newEvent, ...prevEvents]);
+        setCurrentPhase(nextPhase);
+    };
+
+    const currentPhaseTasks = tasks.filter(task => task.phase === currentPhase);
+    const canFinishPhase = currentPhaseTasks.length > 0 && currentPhaseTasks.every(task => task.status === "DONE");
+    const isManager = user && (user.role === "MANAGER" || user.role === "SUPERVISOR");
 
     const displayAlert = alert || {
         id: "ALERT-2026-001",
@@ -135,10 +163,10 @@ function PdcaCaseDetailsPage() {
                 {data && !loading && (
                     <div className="px-6 py-0">
                         <PdcaCaseHeader
-                            phase={data.case.phase}
+                            phase={currentPhase}
                             tasks={tasks}
                             onBack={() => navigate("/manager")}
-                            onFinishPhase={() => { }}
+                            onFinishPhase={isManager && canFinishPhase ? handleFinishPhase : undefined}
                         />
                     </div>
                 )}
@@ -168,34 +196,36 @@ function PdcaCaseDetailsPage() {
 
                 {data && !loading && (
                     <>
-                        <div className="px-6 py-0">
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                <div className="md:col-span-1 space-y-6">
-                                    <div>
-                                        <h3 className="text-lg font-semibold mb-4">Timeline</h3>
-                                        <PdcaStatusTimeline events={events} />
+                        <div className="px-6 py-0 flex-1 flex flex-col">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 flex-1 -mt-12">
+                                <div className="md:col-span-1 flex flex-col">
+                                    <div className="rounded-lg bg-slate-800/50 border border-slate-700 flex flex-col h-full">
+                                        <h3 className="sticky top-0 text-lg font-semibold mb-4 p-4 bg-slate-800/70 border-b border-slate-700">Timeline</h3>
+                                        <div className="flex-1 overflow-y-auto p-4">
+                                            <PdcaStatusTimeline events={events} />
+                                        </div>
                                     </div>
                                 </div>
 
-                                <div className="md:col-span-1">
-                                    {user && (user.role === "MANAGER" || user.role === "SUPERVISOR") ? (
-                                        <div>
-                                            <h3 className="text-lg font-semibold mb-4">Przypisz zadanie</h3>
-                                            <div className="rounded-lg bg-slate-800/50 border border-slate-700 p-4">
+                                <div className="md:col-span-1 flex flex-col">
+                                    <div className="rounded-lg bg-slate-800/50 border border-slate-700 flex flex-col h-full">
+                                        <h3 className="sticky top-0 text-lg font-semibold mb-4 p-4 bg-slate-800/70 border-b border-slate-700">Przypisz zadanie</h3>
+                                        <div className="flex-1 overflow-y-auto p-4">
+                                            {user && (user.role === "MANAGER" || user.role === "SUPERVISOR") ? (
                                                 <PdcaAssignTaskForm onSubmit={handleAssignTask} />
-                                            </div>
+                                            ) : (
+                                                <p className="text-sm text-slate-400">Brak uprawnień do przypisywania zadań</p>
+                                            )}
                                         </div>
-                                    ) : (
-                                        <div className="rounded-lg bg-slate-800/50 border border-slate-700 p-4">
-                                            <p className="text-sm text-slate-400">Brak uprawnień do przypisywania zadań</p>
-                                        </div>
-                                    )}
+                                    </div>
                                 </div>
 
-                                <div className="md:col-span-1 space-y-6">
-                                    <div>
-                                        <h3 className="text-lg font-semibold mb-4">Tasks</h3>
-                                        <PdcaTasksPanel tasks={tasks} onMarkTaskDone={handleMarkTaskDone} />
+                                <div className="md:col-span-1 flex flex-col">
+                                    <div className="rounded-lg bg-slate-800/50 border border-slate-700 flex flex-col h-full">
+                                        <h3 className="sticky top-0 text-lg font-semibold mb-4 p-4 bg-slate-800/70 border-b border-slate-700">Tasks</h3>
+                                        <div className="flex-1 overflow-y-auto p-4">
+                                            <PdcaTasksPanel tasks={currentPhaseTasks} onMarkTaskDone={handleMarkTaskDone} />
+                                        </div>
                                     </div>
                                 </div>
                             </div>

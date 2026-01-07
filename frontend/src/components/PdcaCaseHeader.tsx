@@ -8,8 +8,9 @@ interface PdcaCaseHeaderProps {
 }
 
 function PdcaCaseHeader({ phase, tasks, onBack, onFinishPhase }: PdcaCaseHeaderProps) {
-    const progressPercent = tasks.length > 0
-        ? Math.round(tasks.reduce((sum, task) => sum + task.progressPercent, 0) / tasks.length)
+    const currentPhaseTasks = tasks.filter(task => task.phase === phase);
+    const progressPercent = currentPhaseTasks.length > 0
+        ? Math.round(currentPhaseTasks.reduce((sum, task) => sum + task.progressPercent, 0) / currentPhaseTasks.length)
         : 0;
 
     const phaseColors: Record<string, { bg: string; border: string; text: string }> = {
@@ -56,13 +57,19 @@ function PdcaCaseHeader({ phase, tasks, onBack, onFinishPhase }: PdcaCaseHeaderP
                             </button>
                         )}
                         {onFinishPhase && (
-                            <button
-                                type="button"
-                                className="px-4 py-2 rounded border border-green-500 text-green-100 hover:bg-green-500/10 transition-colors"
-                                onClick={onFinishPhase}
-                            >
-                                Finish phase
-                            </button>
+                            <div className="group relative">
+                                <button
+                                    type="button"
+                                    className="px-4 py-2 rounded border border-green-500 text-green-100 hover:bg-green-500/10 transition-colors"
+                                    onClick={onFinishPhase}
+                                    title="Ends current phase and moves to next"
+                                >
+                                    Finish phase
+                                </button>
+                                <div className="absolute bottom-full right-0 mb-2 hidden group-hover:block bg-slate-900 border border-slate-600 text-slate-200 text-xs px-2 py-1 rounded whitespace-nowrap z-10">
+                                    Ends current phase and moves to next
+                                </div>
+                            </div>
                         )}
                     </div>
                 )}
