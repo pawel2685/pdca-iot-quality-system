@@ -3,10 +3,11 @@ import { useParams, useNavigate } from "react-router-dom";
 import AppHeader from "../components/AppHeader";
 import PdcaCaseHeader from "../components/PdcaCaseHeader";
 import PdcaStatusTimeline from "../components/details/PdcaStatusTimeline";
+import PdcaTasksPanel from "../components/details/PdcaTasksPanel";
 import { useAuth } from "../auth/AuthContext";
 import { getPdcaCaseDetails, type PdcaCaseDetailsResponse } from "../api/PdcaCases";
-import { mockTasks } from "../data/MockTasks";
-import { eventsMock } from "../components/details/EventsMock";
+import { mockTasks, type Task } from "../data/MockTasks";
+import { eventsMock, type CaseEvent } from "../components/details/EventsMock";
 
 function PdcaCaseDetailsPage() {
     const { caseId } = useParams<{ caseId: string }>();
@@ -16,6 +17,8 @@ function PdcaCaseDetailsPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [data, setData] = useState<PdcaCaseDetailsResponse | null>(null);
+    const [tasks, setTasks] = useState<Task[]>(mockTasks);
+    const [events, setEvents] = useState<CaseEvent[]>(eventsMock);
 
     useEffect(() => {
         let isMounted = true;
@@ -52,13 +55,34 @@ function PdcaCaseDetailsPage() {
         };
     }, [caseId, user]);
 
+    const handleMarkTaskDone = (taskId: string) => {
+        setTasks((prevTasks) =>
+            prevTasks.map((task) =>
+                task.id === taskId
+                    ? { ...task, status: "DONE" as const, progressPercent: 100 }
+                    : task
+            )
+        );
+
+        const task = tasks.find((t) => t.id === taskId);
+        if (task) {
+            const newEvent: CaseEvent = {
+                id: `event-${Date.now()}`,
+                type: "TASK_DONE",
+                message: `${task.title} - Completed`,
+                timestamp: new Date().toISOString(),
+            };
+            setEvents((prevEvents) => [newEvent, ...prevEvents]);
+        }
+    };
+
     return (
         <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col">
             <AppHeader title="PDCA Case Details" />
             <main className="flex-1">
                 {data && !loading && (
                     <div className="px-6 py-0">
-                        <PdcaCaseHeader phase={data.case.phase} tasks={mockTasks} />
+                        <PdcaCaseHeader phase={data.case.phase} tasks={tasks} />
                     </div>
                 )}
                 <div className="p-6">
@@ -89,7 +113,17 @@ function PdcaCaseDetailsPage() {
                                     <div className="md:col-span-1 space-y-6">
                                         <div>
                                             <h3 className="text-lg font-semibold mb-4">Timeline</h3>
-                                            <PdcaStatusTimeline events={eventsMock} />
+                                            <PdcaStatusTimeline events={events} />
+                                        </div>
+                                    </div>
+
+                                    <div className="md:col-span-1">
+                                    </div>
+
+                                    <div className="md:col-span-1 space-y-6">
+                                        <div>
+                                            <h3 className="text-lg font-semibold mb-4">Tasks</h3>
+                                            <PdcaTasksPanel tasks={tasks} onMarkTaskDone={handleMarkTaskDone} />
                                         </div>
                                     </div>
                                 </div>
