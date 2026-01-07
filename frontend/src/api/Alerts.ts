@@ -10,3 +10,12 @@ export async function getAlerts(): Promise<Alert[]> {
 
   return getLiveAlerts();
 }
+
+export async function getAlertById(alertId: string): Promise<Alert | null> {
+  try {
+    const allAlerts = await getAlerts();
+    return allAlerts.find(a => a.id === alertId) || null;
+  } catch {
+    return null;
+  }
+}
