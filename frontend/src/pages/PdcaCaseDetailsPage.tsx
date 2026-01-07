@@ -2,9 +2,11 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import AppHeader from "../components/AppHeader";
 import PdcaCaseHeader from "../components/PdcaCaseHeader";
+import PdcaStatusTimeline from "../components/details/PdcaStatusTimeline";
 import { useAuth } from "../auth/AuthContext";
 import { getPdcaCaseDetails, type PdcaCaseDetailsResponse } from "../api/PdcaCases";
 import { mockTasks } from "../data/MockTasks";
+import { eventsMock } from "../components/details/EventsMock";
 
 function PdcaCaseDetailsPage() {
     const { caseId } = useParams<{ caseId: string }>();
@@ -83,97 +85,106 @@ function PdcaCaseDetailsPage() {
 
                         {data && !loading && (
                             <>
-                                <div className="rounded-lg bg-slate-800/50 border border-slate-700 p-6">
-                                <div className="flex justify-between items-start mb-4">
-                                    <h2 className="text-xl font-bold">{data.case.title}</h2>
-                                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${data.case.phase === "PLAN" ? "bg-blue-600/20 border border-blue-500 text-blue-100" :
-                                        data.case.phase === "DO" ? "bg-green-600/20 border border-green-500 text-green-100" :
-                                            data.case.phase === "CHECK" ? "bg-amber-600/20 border border-amber-500 text-amber-100" :
-                                                "bg-purple-600/20 border border-purple-500 text-purple-100"
-                                        }`}>
-                                        {data.case.phase}
-                                    </span>
-                                </div>
-
-                                <div className="space-y-3 text-sm">
-                                    <div className="flex justify-between">
-                                        <span className="text-slate-400">Case ID:</span>
-                                        <span className="font-semibold">{data.case.id}</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                        <span className="text-slate-400">Status:</span>
-                                        <span className="font-semibold">{data.case.status}</span>
-                                    </div>
-                                    {data.case.description && (
-                                        <div className="flex flex-col gap-1">
-                                            <span className="text-slate-400">Description:</span>
-                                            <p className="font-semibold text-slate-200">{data.case.description}</p>
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                    <div className="md:col-span-1 space-y-6">
+                                        <div>
+                                            <h3 className="text-lg font-semibold mb-4">Timeline</h3>
+                                            <PdcaStatusTimeline events={eventsMock} />
                                         </div>
-                                    )}
-                                    <div className="flex justify-between">
-                                        <span className="text-slate-400">Created:</span>
-                                        <span className="font-semibold">{new Date(data.case.createDate).toLocaleString()}</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                        <span className="text-slate-400">Updated:</span>
-                                        <span className="font-semibold">{new Date(data.case.updateDate).toLocaleString()}</span>
                                     </div>
                                 </div>
-                            </div>
 
-                            {data.alert && (
                                 <div className="rounded-lg bg-slate-800/50 border border-slate-700 p-6">
-                                    <h3 className="text-lg font-bold mb-4">Alert Details</h3>
+                                    <div className="flex justify-between items-start mb-4">
+                                        <h2 className="text-xl font-bold">{data.case.title}</h2>
+                                        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${data.case.phase === "PLAN" ? "bg-blue-600/20 border border-blue-500 text-blue-100" :
+                                            data.case.phase === "DO" ? "bg-green-600/20 border border-green-500 text-green-100" :
+                                                data.case.phase === "CHECK" ? "bg-amber-600/20 border border-amber-500 text-amber-100" :
+                                                    "bg-purple-600/20 border border-purple-500 text-purple-100"
+                                            }`}>
+                                            {data.case.phase}
+                                        </span>
+                                    </div>
 
                                     <div className="space-y-3 text-sm">
                                         <div className="flex justify-between">
-                                            <span className="text-slate-400">Alert ID:</span>
-                                            <span className="font-semibold">{data.alert.id}</span>
-                                        </div>
-                                        <div className="flex justify-between">
-                                            <span className="text-slate-400">Machine:</span>
-                                            <span className="font-semibold">{data.alert.machine}</span>
-                                        </div>
-                                        <div className="flex justify-between">
-                                            <span className="text-slate-400">Parameter:</span>
-                                            <span className="font-semibold">{data.alert.parameter}</span>
-                                        </div>
-                                        <div className="flex justify-between">
-                                            <span className="text-slate-400">Value:</span>
-                                            <span className={`font-semibold ${data.alert.status === "ALERT" ? "text-red-400" : "text-amber-400"}`}>
-                                                {data.alert.value}
-                                            </span>
-                                        </div>
-                                        <div className="flex justify-between">
-                                            <span className="text-slate-400">Threshold:</span>
-                                            <span className="font-semibold">{data.alert.threshold}</span>
+                                            <span className="text-slate-400">Case ID:</span>
+                                            <span className="font-semibold">{data.case.id}</span>
                                         </div>
                                         <div className="flex justify-between">
                                             <span className="text-slate-400">Status:</span>
-                                            <span className={`font-semibold ${data.alert.status === "ALERT" ? "text-red-100" : "text-amber-100"
-                                                }`}>
-                                                {data.alert.status}
-                                            </span>
+                                            <span className="font-semibold">{data.case.status}</span>
+                                        </div>
+                                        {data.case.description && (
+                                            <div className="flex flex-col gap-1">
+                                                <span className="text-slate-400">Description:</span>
+                                                <p className="font-semibold text-slate-200">{data.case.description}</p>
+                                            </div>
+                                        )}
+                                        <div className="flex justify-between">
+                                            <span className="text-slate-400">Created:</span>
+                                            <span className="font-semibold">{new Date(data.case.createDate).toLocaleString()}</span>
                                         </div>
                                         <div className="flex justify-between">
-                                            <span className="text-slate-400">Timestamp:</span>
-                                            <span className="font-semibold">{new Date(data.alert.timestamp).toLocaleString()}</span>
+                                            <span className="text-slate-400">Updated:</span>
+                                            <span className="font-semibold">{new Date(data.case.updateDate).toLocaleString()}</span>
                                         </div>
                                     </div>
                                 </div>
-                            )}
 
-                            <div className="flex gap-3">
-                                <button
-                                    type="button"
-                                    className="px-4 py-2 rounded border border-slate-500 text-slate-100 hover:bg-slate-700 transition-colors"
-                                    onClick={() => navigate("/manager")}
-                                >
-                                    Back
-                                </button>
-                            </div>
-                        </>
-                    )}
+                                {data.alert && (
+                                    <div className="rounded-lg bg-slate-800/50 border border-slate-700 p-6">
+                                        <h3 className="text-lg font-bold mb-4">Alert Details</h3>
+
+                                        <div className="space-y-3 text-sm">
+                                            <div className="flex justify-between">
+                                                <span className="text-slate-400">Alert ID:</span>
+                                                <span className="font-semibold">{data.alert.id}</span>
+                                            </div>
+                                            <div className="flex justify-between">
+                                                <span className="text-slate-400">Machine:</span>
+                                                <span className="font-semibold">{data.alert.machine}</span>
+                                            </div>
+                                            <div className="flex justify-between">
+                                                <span className="text-slate-400">Parameter:</span>
+                                                <span className="font-semibold">{data.alert.parameter}</span>
+                                            </div>
+                                            <div className="flex justify-between">
+                                                <span className="text-slate-400">Value:</span>
+                                                <span className={`font-semibold ${data.alert.status === "ALERT" ? "text-red-400" : "text-amber-400"}`}>
+                                                    {data.alert.value}
+                                                </span>
+                                            </div>
+                                            <div className="flex justify-between">
+                                                <span className="text-slate-400">Threshold:</span>
+                                                <span className="font-semibold">{data.alert.threshold}</span>
+                                            </div>
+                                            <div className="flex justify-between">
+                                                <span className="text-slate-400">Status:</span>
+                                                <span className={`font-semibold ${data.alert.status === "ALERT" ? "text-red-100" : "text-amber-100"
+                                                    }`}>
+                                                    {data.alert.status}
+                                                </span>
+                                            </div>
+                                            <div className="flex justify-between">
+                                                <span className="text-slate-400">Timestamp:</span>
+                                                <span className="font-semibold">{new Date(data.alert.timestamp).toLocaleString()}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                <div className="flex gap-3">
+                                    <button
+                                        type="button"
+                                        className="px-4 py-2 rounded border border-slate-500 text-slate-100 hover:bg-slate-700 transition-colors"
+                                        onClick={() => navigate("/manager")}
+                                    >
+                                        Back
+                                    </button>
+                                </div>
+                            </>
+                        )}
                     </div>
                 </div>
             </main>
