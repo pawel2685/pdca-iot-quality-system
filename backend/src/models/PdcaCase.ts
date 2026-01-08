@@ -1,5 +1,6 @@
 export type PdcaPhase = "PLAN" | "DO" | "CHECK" | "ACT" | "CLOSED";
 export type PdcaStatus = "ACTIVE" | "CANCELLED" | "COMPLETED";
+export type PdcaCaseType = "ALERT" | "TASK";
 
 export interface PdcaCase {
     id: number;
@@ -10,6 +11,7 @@ export interface PdcaCase {
     createdByUserId: number;
     phase: PdcaPhase;
     status: PdcaStatus;
+    caseType: PdcaCaseType;
     createDate: Date;
     updateDate: Date;
 }
@@ -20,4 +22,11 @@ export interface CreatePdcaCaseFromAlertInput {
     createdByUserId: number;
     title?: string;
     description?: string | null;
+}
+
+export interface CreatePdcaCaseFromTaskInput {
+    title: string;
+    description?: string | null;
+    ownerUserId: number;
+    createdByUserId: number;
 }

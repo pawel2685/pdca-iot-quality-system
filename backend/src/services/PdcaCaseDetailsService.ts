@@ -11,6 +11,7 @@ export interface PdcaCaseWithAlert {
         createdByUserId: number;
         phase: string;
         status: string;
+        caseType: string;
         createDate: string;
         updateDate: string;
     };
@@ -28,6 +29,7 @@ export async function getPdcaCaseWithAlert(caseId: number): Promise<PdcaCaseWith
       pc.CREATED_BY_USER_ID as createdByUserId,
       pc.PHASE as phase,
       pc.STATUS as status,
+      pc.CASE_TYPE as caseType,
       pc.CREATE_DATE as createDate,
       pc.UPDATE_DATE as updateDate,
       a.ID as alertId2,
@@ -61,6 +63,7 @@ export async function getPdcaCaseWithAlert(caseId: number): Promise<PdcaCaseWith
             createdByUserId: row.createdByUserId,
             phase: row.phase,
             status: row.status,
+            caseType: row.caseType,
             createDate: row.createDate instanceof Date ? row.createDate.toISOString() : String(row.createDate),
             updateDate: row.updateDate instanceof Date ? row.updateDate.toISOString() : String(row.updateDate),
         },
