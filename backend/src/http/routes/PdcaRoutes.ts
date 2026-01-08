@@ -1,6 +1,7 @@
 import { Router } from "express";
-import { createPdcaCaseFromAlert } from "../../services/PdcaCaseService";
+import { createPdcaCaseFromAlert, createPdcaCaseFromTask } from "../../services/PdcaCaseService";
 import { getPdcaCaseWithAlert } from "../../services/PdcaCaseDetailsService";
+import { db } from "../../db/Connection";
 
 export const pdcaRouter = Router();
 
@@ -23,6 +24,102 @@ pdcaRouter.post("/cases/from-alert", async (req, res) => {
         return res.status(201).json(pdcaCase);
     } catch (err) {
         console.error("Error creating PDCA case from alert:", (err as Error).message);
+        return res.status(500).json({ message: "Internal server error" });
+    }
+});
+
+pdcaRouter.post("/cases/task", async (req, res) => {
+    const { title, description, ownerUserId, createdByUserId } = req.body ?? {};
+
+    if (!title) {
+        return res.status(400).json({ message: "title is required" });
+    }
+
+    if (!ownerUserId || !createdByUserId) {
+        return res.status(400).json({ message: "ownerUserId and createdByUserId are required" });
+    }
+
+    try {
+        const pdcaCase = await createPdcaCaseFromTask({
+            title,
+            description: description ?? null,
+            ownerUserId,
+            createdByUserId,
+        });
+
+        return res.status(201).json(pdcaCase);
+    } catch (err) {
+        console.error("Error creating PDCA task case:", (err as Error).message);
+        return res.status(500).json({ message: "Internal server error" });
+    }
+});
+
+pdcaRouter.get("/cases", async (req, res) => {
+    const userId = req.query.userId ? parseInt(req.query.userId as string, 10) : null;
+    const phase = req.query.phase as string | undefined;
+
+    if (!userId || isNaN(userId)) {
+        return res.status(400).json({ message: "userId query parameter is required" });
+    }
+
+    const phaseFilter = phase || "PLAN";
+
+    try {
+        const query = `
+      SELECT
+        pc.ID as id,
+        pc.ALERT_ID as alertId,
+        pc.TITLE as title,
+        pc.DESCRIPTION as description,
+        pc.OWNER_USER_ID as ownerUserId,
+        pc.CREATED_BY_USER_ID as createdByUserId,
+        pc.PHASE as phase,
+        pc.STATUS as status,
+        pc.CASE_TYPE as caseType,
+        pc.CREATE_DATE as createDate,
+        pc.UPDATE_DATE as updateDate,
+        a.ID as alertId2,
+        a.STATUS as alertStatus,
+        a.PARAMETER as parameter,
+        a.VALUE as value,
+        a.THRESHOLD as threshold,
+        a.TIMESTAMP as timestamp,
+        a.MACHINE as machine,
+        a.STATE as state
+      FROM PDCA_CASES pc
+      LEFT JOIN ALERTS a ON pc.ALERT_ID = a.ID
+      WHERE pc.OWNER_USER_ID = ? AND pc.PHASE = ?
+      ORDER BY pc.CREATE_DATE DESC
+    `;
+
+        const [rows] = await db.execute(query, [userId, phaseFilter]);
+
+        const cases = (rows as any[]).map((row) => ({
+            id: row.id,
+            caseType: row.caseType,
+            alertId: row.alertId,
+            title: row.title,
+            description: row.description,
+            ownerUserId: row.ownerUserId,
+            phase: row.phase,
+            status: row.status,
+            createDate: row.createDate instanceof Date ? row.createDate.toISOString() : String(row.createDate),
+            updateDate: row.updateDate instanceof Date ? row.updateDate.toISOString() : String(row.updateDate),
+            alert: row.alertId2 ? {
+                id: String(row.alertId2),
+                status: row.alertStatus,
+                parameter: row.parameter,
+                value: Number(row.value),
+                threshold: Number(row.threshold),
+                timestamp: row.timestamp instanceof Date ? row.timestamp.toISOString() : String(row.timestamp),
+                machine: row.machine,
+                state: row.state,
+            } : null,
+        }));
+
+        return res.json(cases);
+    } catch (err) {
+        console.error("Error fetching PDCA cases:", (err as Error).message);
         return res.status(500).json({ message: "Internal server error" });
     }
 });
