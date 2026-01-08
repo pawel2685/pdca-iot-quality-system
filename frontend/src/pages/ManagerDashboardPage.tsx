@@ -4,17 +4,20 @@ import type { Alert } from "../types/Alert";
 import { getUnassignedAlerts } from "../api/UnassignedAlerts";
 import AppHeader from "../components/AppHeader";
 import { useAuth } from "../auth/AuthContext";
-import { createPdcaCaseFromAlert } from "../api/PdcaCases";
+import { createPdcaCaseFromAlert, createPdcaCaseFromTask, type PdcaCaseListItem } from "../api/PdcaCases";
 
 function ManagerDashboardPage() {
     const { user } = useAuth();
     const navigate = useNavigate();
     const [unassignedAlerts, setUnassignedAlerts] = useState<Alert[]>([]);
-    const [assignedAlerts, setAssignedAlerts] = useState<(Alert & { caseId: number })[]>([]);
+    const [assignedCases, setAssignedCases] = useState<PdcaCaseListItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [assignError, setAssignError] = useState<string | null>(null);
     const [assigningId, setAssigningId] = useState<string | null>(null);
+    const [taskTitle, setTaskTitle] = useState("");
+    const [creatingTask, setCreatingTask] = useState(false);
+    const [taskError, setTaskError] = useState<string | null>(null);
 
     useEffect(() => {
         let isMounted = true;
@@ -26,7 +29,7 @@ function ManagerDashboardPage() {
                 const data = await getUnassignedAlerts(7);
                 if (isMounted) {
                     setUnassignedAlerts(data);
-                    setAssignedAlerts([]);
+                    setAssignedCases([]);
                 }
             } catch {
                 if (isMounted) {
@@ -59,14 +62,62 @@ function ManagerDashboardPage() {
             const pdcaCase = await createPdcaCaseFromAlert(alert.id, user.id);
 
             setUnassignedAlerts((prev) => prev.filter((a) => a.id !== alert.id));
-            setAssignedAlerts((prev) => [
+            setAssignedCases((prev) => [
                 ...prev,
-                { ...alert, state: "ASSIGNED", caseId: pdcaCase.id },
+                {
+                    id: pdcaCase.id,
+                    caseType: "ALERT",
+                    alertId: alert.id,
+                    title: alert.machine,
+                    description: null,
+                    ownerUserId: pdcaCase.ownerUserId,
+                    phase: pdcaCase.phase,
+                    status: pdcaCase.status,
+                    createDate: pdcaCase.createDate,
+                    updateDate: pdcaCase.updateDate,
+                    alert: alert,
+                },
             ]);
         } catch (error) {
             setAssignError(error instanceof Error ? error.message : "Failed to assign alert");
         } finally {
             setAssigningId(null);
+        }
+    };
+
+    const handleCreateTask = async () => {
+        if (!user || !taskTitle.trim()) {
+            return;
+        }
+
+        setTaskError(null);
+        setCreatingTask(true);
+
+        try {
+            const newCase = await createPdcaCaseFromTask(taskTitle, user.id);
+
+            setAssignedCases((prev) => [
+                {
+                    id: newCase.id,
+                    caseType: "TASK",
+                    alertId: null,
+                    title: newCase.title,
+                    description: newCase.description,
+                    ownerUserId: newCase.ownerUserId,
+                    phase: newCase.phase,
+                    status: newCase.status,
+                    createDate: newCase.createDate,
+                    updateDate: newCase.updateDate,
+                    alert: null,
+                },
+                ...prev,
+            ]);
+
+            setTaskTitle("");
+        } catch (error) {
+            setTaskError(error instanceof Error ? error.message : "Failed to create task");
+        } finally {
+            setCreatingTask(false);
         }
     };
 
@@ -172,14 +223,44 @@ function ManagerDashboardPage() {
                         My PDCA alerts (PLAN)
                     </h2>
 
+                    {(user?.role === "MANAGER" || user?.role === "SUPERVISOR") && (
+                        <div className="mb-4 p-3 rounded-lg bg-slate-800/50 border border-slate-700 flex gap-2">
+                            <input
+                                type="text"
+                                placeholder="Task title..."
+                                value={taskTitle}
+                                onChange={(e) => setTaskTitle(e.target.value)}
+                                onKeyDown={(e) => e.key === "Enter" && !creatingTask && taskTitle.trim() && handleCreateTask()}
+                                className="flex-1 px-3 py-2 text-sm rounded bg-slate-900 border border-slate-600 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-blue-500"
+                                disabled={creatingTask}
+                            />
+                            <button
+                                type="button"
+                                onClick={handleCreateTask}
+                                disabled={!taskTitle.trim() || creatingTask}
+                                className="px-3 py-2 text-sm rounded bg-green-600 hover:bg-green-700 text-slate-100 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+                            >
+                                {creatingTask ? "Creating..." : "Create Task"}
+                            </button>
+                        </div>
+                    )}
+
+                    {taskError && (
+                        <div className="mb-3 p-2 text-xs bg-red-900/40 border border-red-500 text-red-100 rounded">
+                            {taskError}
+                        </div>
+                    )}
+
                     <div className="flex-1 rounded-lg bg-slate-900/40 border border-slate-800 p-4 overflow-y-auto">
-                        {assignedAlerts.length === 0 ? (
+                        {assignedCases.length === 0 ? (
                             <div className="h-full flex items-center justify-center text-sm text-slate-500">
-                                No alerts assigned to you yet.
+                                No alerts or tasks assigned to you yet.
                             </div>
                         ) : (
                             <ul className="space-y-3">
-                                {assignedAlerts.map((alert) => {
+                                {assignedCases.map((item) => {
+                                    const caseType = item.caseType;
+                                    const caseId = item.id;
                                     const pdcaPhase = "PLAN";
                                     const getPhaseColors = (phase: string) => {
                                         switch (phase) {
@@ -222,37 +303,78 @@ function ManagerDashboardPage() {
                                     };
                                     const colors = getPhaseColors(pdcaPhase);
 
-                                    return (
-                                        <li
-                                            key={alert.id}
-                                            className="flex items-center gap-6 rounded-lg px-4 py-4 border border-slate-700"
-                                            style={{ backgroundColor: colors.cardBg }}
-                                        >
-                                            <div className="flex items-center gap-1">
-                                                <span className={`text-lg px-3 py-1 rounded-full ${colors.bg} border ${colors.border} ${colors.text} font-bold`}>
-                                                    {pdcaPhase}
-                                                </span>
-                                            </div>
-                                            <div className="h-8 w-px bg-slate-400/30"></div>
-                                            <div className="font-bold text-lg min-w-[120px]">{alert.status}</div>
-                                            <div className="h-8 w-px bg-slate-400/30"></div>
-                                            <div className="font-semibold text-lg min-w-[140px]">{alert.machine}</div>
-                                            <div className="h-8 w-px bg-slate-400/30"></div>
-                                            <div className="flex items-center gap-8 flex-1 text-sm">
-                                                <div className="font-medium">{alert.parameter}</div>
-                                                <div>value: <span className="font-semibold">{alert.value}</span></div>
-                                                <div>threshold: <span className="font-semibold">{alert.threshold}</span></div>
-                                            </div>
-                                            <div className="text-sm text-slate-200 font-semibold">{alert.state}</div>
-                                            <button
-                                                type="button"
-                                                className="text-xs px-3 py-1 rounded border border-sky-500 text-sky-100 hover:bg-sky-500/10 ml-2"
-                                                onClick={() => navigate(`/manager/cases/${alert.caseId}`)}
+                                    if (caseType === "TASK") {
+                                        const taskCase = item as PdcaCaseListItem;
+                                        return (
+                                            <li
+                                                key={taskCase.id}
+                                                className="flex items-center gap-6 rounded-lg px-4 py-4 border border-slate-700"
+                                                style={{ backgroundColor: colors.cardBg }}
                                             >
-                                                Details
-                                            </button>
-                                        </li>
-                                    );
+                                                <div className="flex items-center gap-1">
+                                                    <span className={`text-lg px-3 py-1 rounded-full ${colors.bg} border ${colors.border} ${colors.text} font-bold`}>
+                                                        {pdcaPhase}
+                                                    </span>
+                                                </div>
+                                                <div className="h-8 w-px bg-slate-400/30"></div>
+                                                <div className="font-bold text-lg min-w-[120px]">
+                                                    <span className="px-2 py-0.5 rounded-full bg-purple-600/30 border border-purple-500 text-purple-100 text-sm">
+                                                        TASK
+                                                    </span>
+                                                </div>
+                                                <div className="h-8 w-px bg-slate-400/30"></div>
+                                                <div className="font-semibold text-lg min-w-[140px]">{taskCase.title}</div>
+                                                <div className="h-8 w-px bg-slate-400/30"></div>
+                                                <div className="flex items-center gap-8 flex-1 text-sm">
+                                                    <div className="font-medium">—</div>
+                                                    <div>value: <span className="font-semibold">—</span></div>
+                                                    <div>threshold: <span className="font-semibold">—</span></div>
+                                                </div>
+                                                <div className="text-sm text-slate-200 font-semibold">{taskCase.status}</div>
+                                                <button
+                                                    type="button"
+                                                    className="text-xs px-3 py-1 rounded border border-sky-500 text-sky-100 hover:bg-sky-500/10 ml-2"
+                                                    onClick={() => navigate(`/manager/cases/${taskCase.id}`)}
+                                                >
+                                                    Details
+                                                </button>
+                                            </li>
+                                        );
+                                    } else {
+                                        const alertData = item.alert;
+                                        if (!alertData) return null;
+                                        return (
+                                            <li
+                                                key={item.id}
+                                                className="flex items-center gap-6 rounded-lg px-4 py-4 border border-slate-700"
+                                                style={{ backgroundColor: colors.cardBg }}
+                                            >
+                                                <div className="flex items-center gap-1">
+                                                    <span className={`text-lg px-3 py-1 rounded-full ${colors.bg} border ${colors.border} ${colors.text} font-bold`}>
+                                                        {pdcaPhase}
+                                                    </span>
+                                                </div>
+                                                <div className="h-8 w-px bg-slate-400/30"></div>
+                                                <div className="font-bold text-lg min-w-[120px]">{alertData.status}</div>
+                                                <div className="h-8 w-px bg-slate-400/30"></div>
+                                                <div className="font-semibold text-lg min-w-[140px]">{alertData.machine}</div>
+                                                <div className="h-8 w-px bg-slate-400/30"></div>
+                                                <div className="flex items-center gap-8 flex-1 text-sm">
+                                                    <div className="font-medium">{alertData.parameter}</div>
+                                                    <div>value: <span className="font-semibold">{alertData.value}</span></div>
+                                                    <div>threshold: <span className="font-semibold">{alertData.threshold}</span></div>
+                                                </div>
+                                                <div className="text-sm text-slate-200 font-semibold">{alertData.state}</div>
+                                                <button
+                                                    type="button"
+                                                    className="text-xs px-3 py-1 rounded border border-sky-500 text-sky-100 hover:bg-sky-500/10 ml-2"
+                                                    onClick={() => navigate(`/manager/cases/${caseId}`)}
+                                                >
+                                                    Details
+                                                </button>
+                                            </li>
+                                        );
+                                    }
                                 })}
                             </ul>
                         )}
