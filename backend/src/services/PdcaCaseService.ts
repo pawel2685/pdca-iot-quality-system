@@ -13,6 +13,26 @@ export async function createPdcaCaseFromAlert(
         input.title ?? `PDCA for alert ${input.alertId}`;
     const description = input.description ?? null;
 
+    if (input.alertData) {
+        const checkQuery = `SELECT ID FROM ALERTS WHERE ID = ?`;
+        const [existing] = await db.execute(checkQuery, [input.alertId]);
+
+        if ((existing as any[]).length === 0) {
+            const insertAlertQuery = `
+                INSERT INTO ALERTS (ID, MACHINE, PARAMETER, VALUE, THRESHOLD, STATUS, TIMESTAMP, STATE)
+                VALUES (?, ?, ?, ?, ?, ?, NOW(), 'ASSIGNED')
+            `;
+            await db.execute(insertAlertQuery, [
+                input.alertId,
+                input.alertData.machine,
+                input.alertData.parameter,
+                input.alertData.value,
+                input.alertData.threshold,
+                input.alertData.status,
+            ]);
+        }
+    }
+
     const [result] = await db.execute(
         `
       INSERT INTO PDCA_CASES

@@ -22,6 +22,13 @@ export interface CreatePdcaCaseFromAlertInput {
     createdByUserId: number;
     title?: string;
     description?: string | null;
+    alertData?: {
+        status: string;
+        parameter: string;
+        value: number;
+        threshold: number;
+        machine: string;
+    };
 }
 
 export interface CreatePdcaCaseFromTaskInput {

@@ -8,7 +8,9 @@ import type { CreateTaskRequest, UpdateTaskRequest } from "../../models/PdcaTask
 export const pdcaRouter = Router();
 
 pdcaRouter.post("/cases/from-alert", async (req, res) => {
-    const { alertId, ownerUserId, createdByUserId, title, description } = req.body ?? {};
+    const { alertId, ownerUserId, createdByUserId, title, description, alertData } = req.body ?? {};
+
+    console.log("POST /cases/from-alert - received:", { alertId, ownerUserId, createdByUserId });
 
     if (!alertId || !ownerUserId || !createdByUserId) {
         return res.status(400).json({ message: "alertId, ownerUserId and createdByUserId are required" });
@@ -21,8 +23,10 @@ pdcaRouter.post("/cases/from-alert", async (req, res) => {
             createdByUserId,
             title,
             description,
+            alertData,
         });
 
+        console.log("Created PDCA case:", pdcaCase);
         return res.status(201).json(pdcaCase);
     } catch (err) {
         console.error("Error creating PDCA case from alert:", (err as Error).message);
@@ -60,6 +64,8 @@ pdcaRouter.get("/cases", async (req, res) => {
     const userId = req.query.userId ? parseInt(req.query.userId as string, 10) : null;
     const phase = req.query.phase as string | undefined;
 
+    console.log("GET /cases - received:", { userId, phase });
+
     if (!userId || isNaN(userId)) {
         return res.status(400).json({ message: "userId query parameter is required" });
     }
@@ -95,6 +101,7 @@ pdcaRouter.get("/cases", async (req, res) => {
     `;
 
         const [rows] = await db.execute(query, [userId, phaseFilter]);
+        console.log(`GET /cases - found ${(rows as any[]).length} cases`);
 
         const cases = (rows as any[]).map((row) => ({
             id: row.id,
@@ -295,3 +302,31 @@ pdcaRouter.patch("/tasks/:taskId", async (req, res) => {
         return res.status(500).json({ message: "Internal server error" });
     }
 });
+
+pdcaRouter.delete("/cases/:caseId", async (req, res) => {
+    const caseId = parseInt(req.params.caseId, 10);
+    const userId = req.query.userId ? parseInt(req.query.userId as string, 10) : req.body?.userId;
+
+    if (isNaN(caseId)) {
+        return res.status(400).json({ message: "caseId must be a number" });
+    }
+
+    if (!userId || isNaN(userId)) {
+        return res.status(400).json({ message: "userId is required" });
+    }
+
+    try {
+        const query = "DELETE FROM PDCA_CASES WHERE ID = ? AND OWNER_USER_ID = ?";
+        const [result] = await db.execute(query, [caseId, userId]);
+
+        if ((result as any).affectedRows === 0) {
+            return res.status(404).json({ message: "Case not found or not owned by user" });
+        }
+
+        return res.json({ message: "Case deleted successfully" });
+    } catch (err) {
+        console.error("Error deleting PDCA case:", (err as Error).message);
+        return res.status(500).json({ message: "Internal server error" });
+    }
+});
+export default pdcaRouter;

@@ -4,7 +4,8 @@ import type { Alert } from "../types/Alert";
 import { getUnassignedAlerts } from "../api/UnassignedAlerts";
 import AppHeader from "../components/AppHeader";
 import { useAuth } from "../auth/AuthContext";
-import { createPdcaCaseFromAlert, createPdcaCaseFromTask, type PdcaCaseListItem } from "../api/PdcaCases";
+import { createPdcaCaseFromAlert, createPdcaCaseFromTask, getPdcaCasesList, type PdcaCaseListItem } from "../api/PdcaCases";
+import { API_BASE_URL } from "../config/ApiConfig";
 
 function ManagerDashboardPage() {
     const { user } = useAuth();
@@ -18,22 +19,28 @@ function ManagerDashboardPage() {
     const [taskTitle, setTaskTitle] = useState("");
     const [creatingTask, setCreatingTask] = useState(false);
     const [taskError, setTaskError] = useState<string | null>(null);
+    const [removingId, setRemovingId] = useState<number | null>(null);
 
     useEffect(() => {
         let isMounted = true;
 
-        async function loadAlerts() {
+        async function loadData() {
+            if (!user) return;
+
             try {
                 setLoading(true);
                 setError(null);
-                const data = await getUnassignedAlerts(7);
+                const [alerts, cases] = await Promise.all([
+                    getUnassignedAlerts(7),
+                    getPdcaCasesList(user.id, "PLAN"),
+                ]);
                 if (isMounted) {
-                    setUnassignedAlerts(data);
-                    setAssignedCases([]);
+                    setUnassignedAlerts(alerts);
+                    setAssignedCases(cases);
                 }
             } catch {
                 if (isMounted) {
-                    setError("Failed to load alerts");
+                    setError("Failed to load data");
                 }
             } finally {
                 if (isMounted) {
@@ -42,12 +49,12 @@ function ManagerDashboardPage() {
             }
         }
 
-        loadAlerts();
+        loadData();
 
         return () => {
             isMounted = false;
         };
-    }, []);
+    }, [user]);
 
     const handleAssignToMe = async (alert: Alert) => {
         if (!user) {
@@ -59,25 +66,33 @@ function ManagerDashboardPage() {
         setAssigningId(alert.id);
 
         try {
-            const pdcaCase = await createPdcaCaseFromAlert(alert.id, user.id);
+            const alertData = {
+                status: alert.status,
+                parameter: alert.parameter,
+                value: alert.value,
+                threshold: alert.threshold,
+                machine: alert.machine,
+            };
+
+            const pdcaCase = await createPdcaCaseFromAlert(alert.id, user.id, alertData);
 
             setUnassignedAlerts((prev) => prev.filter((a) => a.id !== alert.id));
-            setAssignedCases((prev) => [
-                ...prev,
-                {
-                    id: pdcaCase.id,
-                    caseType: "ALERT",
-                    alertId: alert.id,
-                    title: alert.machine,
-                    description: null,
-                    ownerUserId: pdcaCase.ownerUserId,
-                    phase: pdcaCase.phase,
-                    status: pdcaCase.status,
-                    createDate: pdcaCase.createDate,
-                    updateDate: pdcaCase.updateDate,
-                    alert: alert,
-                },
-            ]);
+
+            const newCase: PdcaCaseListItem = {
+                id: pdcaCase.id,
+                caseType: "ALERT",
+                alertId: alert.id,
+                title: pdcaCase.title,
+                description: null,
+                ownerUserId: pdcaCase.ownerUserId,
+                phase: "PLAN",
+                status: "ACTIVE",
+                createDate: pdcaCase.createDate,
+                updateDate: pdcaCase.updateDate,
+                alert: alert,
+            };
+
+            setAssignedCases((prev) => [newCase, ...prev]);
         } catch (error) {
             setAssignError(error instanceof Error ? error.message : "Failed to assign alert");
         } finally {
@@ -118,6 +133,29 @@ function ManagerDashboardPage() {
             setTaskError(error instanceof Error ? error.message : "Failed to create task");
         } finally {
             setCreatingTask(false);
+        }
+    };
+
+    const handleRemoveCase = async (caseId: number) => {
+        if (!user) return;
+
+        setRemovingId(caseId);
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/pdca/cases/${caseId}?userId=${user.id}`, {
+                method: "DELETE",
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.message);
+            }
+
+            setAssignedCases((prev) => prev.filter((c) => c.id !== caseId));
+        } catch (error) {
+            setAssignError(error instanceof Error ? error.message : "Failed to remove case");
+        } finally {
+            setRemovingId(null);
         }
     };
 
@@ -258,124 +296,50 @@ function ManagerDashboardPage() {
                             </div>
                         ) : (
                             <ul className="space-y-3">
-                                {assignedCases.map((item) => {
-                                    const caseType = item.caseType;
-                                    const caseId = item.id;
-                                    const pdcaPhase = "PLAN";
-                                    const getPhaseColors = (phase: string) => {
-                                        switch (phase) {
-                                            case "PLAN":
-                                                return {
-                                                    bg: "bg-blue-600/20",
-                                                    border: "border-blue-500",
-                                                    text: "text-blue-100",
-                                                    cardBg: "#1e3a8a"
-                                                };
-                                            case "DO":
-                                                return {
-                                                    bg: "bg-green-600/20",
-                                                    border: "border-green-500",
-                                                    text: "text-green-100",
-                                                    cardBg: "#166534"
-                                                };
-                                            case "CHECK":
-                                                return {
-                                                    bg: "bg-amber-600/20",
-                                                    border: "border-amber-500",
-                                                    text: "text-amber-100",
-                                                    cardBg: "#92400e"
-                                                };
-                                            case "ACT":
-                                                return {
-                                                    bg: "bg-purple-600/20",
-                                                    border: "border-purple-500",
-                                                    text: "text-purple-100",
-                                                    cardBg: "#7c2d12"
-                                                };
-                                            default:
-                                                return {
-                                                    bg: "bg-blue-600/20",
-                                                    border: "border-blue-500",
-                                                    text: "text-blue-100",
-                                                    cardBg: "#1e3a8a"
-                                                };
-                                        }
-                                    };
-                                    const colors = getPhaseColors(pdcaPhase);
+                                {assignedCases.map((item) => (
+                                    <li
+                                        key={item.id}
+                                        className="flex items-center gap-6 rounded-lg px-4 py-4 border border-slate-700 bg-blue-900/40"
+                                    >
+                                        <span className="text-lg px-3 py-1 rounded-full bg-blue-600/20 border border-blue-500 text-blue-100 font-bold">
+                                            PLAN
+                                        </span>
 
-                                    if (caseType === "TASK") {
-                                        const taskCase = item as PdcaCaseListItem;
-                                        return (
-                                            <li
-                                                key={taskCase.id}
-                                                className="flex items-center gap-6 rounded-lg px-4 py-4 border border-slate-700"
-                                                style={{ backgroundColor: colors.cardBg }}
-                                            >
-                                                <div className="flex items-center gap-1">
-                                                    <span className={`text-lg px-3 py-1 rounded-full ${colors.bg} border ${colors.border} ${colors.text} font-bold`}>
-                                                        {pdcaPhase}
-                                                    </span>
-                                                </div>
-                                                <div className="h-8 w-px bg-slate-400/30"></div>
-                                                <div className="font-bold text-lg min-w-[120px]">
-                                                    <span className="px-2 py-0.5 rounded-full bg-purple-600/30 border border-purple-500 text-purple-100 text-sm">
-                                                        TASK
-                                                    </span>
-                                                </div>
-                                                <div className="h-8 w-px bg-slate-400/30"></div>
-                                                <div className="font-semibold text-lg min-w-[140px]">{taskCase.title}</div>
-                                                <div className="h-8 w-px bg-slate-400/30"></div>
-                                                <div className="flex items-center gap-8 flex-1 text-sm">
-                                                    <div className="font-medium">—</div>
-                                                    <div>value: <span className="font-semibold">—</span></div>
-                                                    <div>threshold: <span className="font-semibold">—</span></div>
-                                                </div>
-                                                <div className="text-sm text-slate-200 font-semibold">{taskCase.status}</div>
-                                                <button
-                                                    type="button"
-                                                    className="text-xs px-3 py-1 rounded border border-sky-500 text-sky-100 hover:bg-sky-500/10 ml-2"
-                                                    onClick={() => navigate(`/manager/cases/${taskCase.id}`)}
-                                                >
-                                                    Details
-                                                </button>
-                                            </li>
-                                        );
-                                    } else {
-                                        const alertData = item.alert;
-                                        if (!alertData) return null;
-                                        return (
-                                            <li
-                                                key={item.id}
-                                                className="flex items-center gap-6 rounded-lg px-4 py-4 border border-slate-700"
-                                                style={{ backgroundColor: colors.cardBg }}
-                                            >
-                                                <div className="flex items-center gap-1">
-                                                    <span className={`text-lg px-3 py-1 rounded-full ${colors.bg} border ${colors.border} ${colors.text} font-bold`}>
-                                                        {pdcaPhase}
-                                                    </span>
-                                                </div>
-                                                <div className="h-8 w-px bg-slate-400/30"></div>
-                                                <div className="font-bold text-lg min-w-[120px]">{alertData.status}</div>
-                                                <div className="h-8 w-px bg-slate-400/30"></div>
-                                                <div className="font-semibold text-lg min-w-[140px]">{alertData.machine}</div>
-                                                <div className="h-8 w-px bg-slate-400/30"></div>
-                                                <div className="flex items-center gap-8 flex-1 text-sm">
-                                                    <div className="font-medium">{alertData.parameter}</div>
-                                                    <div>value: <span className="font-semibold">{alertData.value}</span></div>
-                                                    <div>threshold: <span className="font-semibold">{alertData.threshold}</span></div>
-                                                </div>
-                                                <div className="text-sm text-slate-200 font-semibold">{alertData.state}</div>
-                                                <button
-                                                    type="button"
-                                                    className="text-xs px-3 py-1 rounded border border-sky-500 text-sky-100 hover:bg-sky-500/10 ml-2"
-                                                    onClick={() => navigate(`/manager/cases/${caseId}`)}
-                                                >
-                                                    Details
-                                                </button>
-                                            </li>
-                                        );
-                                    }
-                                })}
+                                        <div className="w-px h-8 bg-slate-400/30"></div>
+
+                                        <div className="font-bold">{item.alert?.status || "ALERT"}</div>
+
+                                        <div className="w-px h-8 bg-slate-400/30"></div>
+
+                                        <div className="font-semibold">{item.alert?.machine || item.title}</div>
+
+                                        <div className="w-px h-8 bg-slate-400/30"></div>
+
+                                        <div className="text-sm text-slate-400">
+                                            <span>{item.alert?.parameter}</span>
+                                            <span className="mx-2">{item.alert?.value} (thr {item.alert?.threshold})</span>
+                                        </div>
+
+                                        <div className="flex-1"></div>
+
+                                        <button
+                                            type="button"
+                                            className="text-xs px-3 py-1 rounded border border-sky-500 text-sky-100 hover:bg-sky-500/10"
+                                            onClick={() => navigate(`/manager/cases/${item.id}`)}
+                                        >
+                                            Details
+                                        </button>
+
+                                        <button
+                                            type="button"
+                                            className="text-xs px-3 py-1 rounded border border-red-500 bg-red-600/20 text-red-100 hover:bg-red-500/10 disabled:opacity-50"
+                                            onClick={() => handleRemoveCase(item.id)}
+                                            disabled={removingId === item.id}
+                                        >
+                                            {removingId === item.id ? "Removing..." : "Remove"}
+                                        </button>
+                                    </li>
+                                ))}
                             </ul>
                         )}
                     </div>

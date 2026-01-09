@@ -48,16 +48,25 @@ export interface PdcaCaseListItem {
     alert: Alert | null;
 }
 
-export async function createPdcaCaseFromAlert(alertId: string, userId: number): Promise<CreatePdcaCaseResponse> {
+export async function createPdcaCaseFromAlert(
+    alertId: string,
+    userId: number,
+    alertData?: { status: string; parameter: string; value: number; threshold: number; machine: string }
+): Promise<CreatePdcaCaseResponse> {
     const response = await fetch(`${API_BASE_URL}/pdca/cases/from-alert`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ alertId, ownerUserId: userId, createdByUserId: userId }),
+        body: JSON.stringify({
+            alertId,
+            ownerUserId: userId,
+            createdByUserId: userId,
+            ...(alertData && { alertData }),
+        }),
     });
 
     if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message);
+        const data = await response.json();
+        throw new Error(data.message);
     }
 
     return response.json();
