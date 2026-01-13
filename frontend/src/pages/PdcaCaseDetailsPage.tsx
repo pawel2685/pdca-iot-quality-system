@@ -209,7 +209,7 @@ function PdcaCaseDetailsPage() {
 
                                 <div className="md:col-span-1 flex flex-col">
                                     <div className="rounded-lg bg-slate-800/50 border border-slate-700 flex flex-col h-full">
-                                        <h3 className="sticky top-0 text-lg font-semibold mb-4 p-4 bg-slate-800/70 border-b border-slate-700">Przypisz zadanie</h3>
+                                        <h3 className="sticky top-0 text-lg font-semibold mb-4 p-4 bg-slate-800/70 border-b border-slate-700">Assign Task</h3>
                                         <div className="flex-1 overflow-y-auto p-4">
                                             {user && (user.role === "MANAGER" || user.role === "SUPERVISOR") ? (
                                                 <PdcaAssignTaskForm onSubmit={handleAssignTask} />
