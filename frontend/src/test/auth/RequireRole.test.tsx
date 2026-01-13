@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { AuthContext, type AuthUser } from '../../auth/AuthContext';
-import { RequireRole } from '../../auth/RequireRole';
+import type { AuthUser } from '../../auth/AuthContext';
 
 describe('RequireRole Component', () => {
     it('blocks access when no user is logged in', () => {

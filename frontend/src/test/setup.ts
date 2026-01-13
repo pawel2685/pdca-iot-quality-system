@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom';
-import { expect, afterEach, vi } from 'vitest';
+import { afterEach, vi } from 'vitest';
 import { cleanup } from '@testing-library/react';
 
 afterEach(() => {
@@ -8,11 +8,11 @@ afterEach(() => {
 
 if (!globalThis.localStorage) {
     globalThis.localStorage = {
-        getItem: vi.fn(),
-        setItem: vi.fn(),
-        removeItem: vi.fn(),
-        clear: vi.fn(),
+        getItem: vi.fn() as unknown as Storage['getItem'],
+        setItem: vi.fn() as unknown as Storage['setItem'],
+        removeItem: vi.fn() as unknown as Storage['removeItem'],
+        clear: vi.fn() as unknown as Storage['clear'],
         length: 0,
-        key: vi.fn(),
-    } as any;
+        key: vi.fn() as unknown as Storage['key'],
+    } as unknown as Storage;
 }

@@ -62,7 +62,8 @@ describe('PdcaCaseDetailsPage', () => {
     });
 
     it('renders loading state initially', () => {
-        (PdcaCasesAPI.getPdcaCaseDetails as any).mockImplementation(
+        const mockGetDetails = PdcaCasesAPI.getPdcaCaseDetails as ReturnType<typeof vi.fn>;
+        mockGetDetails.mockImplementation(
             () => new Promise(() => { })
         );
 
@@ -78,7 +79,8 @@ describe('PdcaCaseDetailsPage', () => {
     });
 
     it('fetches case details on mount', async () => {
-        (PdcaCasesAPI.getPdcaCaseDetails as any).mockResolvedValueOnce(mockCaseDetails);
+        const mockGetDetails = PdcaCasesAPI.getPdcaCaseDetails as ReturnType<typeof vi.fn>;
+        mockGetDetails.mockResolvedValueOnce(mockCaseDetails);
 
         render(
             <BrowserRouter>
@@ -94,7 +96,8 @@ describe('PdcaCaseDetailsPage', () => {
     });
 
     it('displays case details after loading', async () => {
-        (PdcaCasesAPI.getPdcaCaseDetails as any).mockResolvedValueOnce(mockCaseDetails);
+        const mockGetDetails = PdcaCasesAPI.getPdcaCaseDetails as ReturnType<typeof vi.fn>;
+        mockGetDetails.mockResolvedValueOnce(mockCaseDetails);
 
         render(
             <BrowserRouter>
@@ -111,7 +114,8 @@ describe('PdcaCaseDetailsPage', () => {
     });
 
     it('handles error response (404)', async () => {
-        (PdcaCasesAPI.getPdcaCaseDetails as any).mockRejectedValueOnce(
+        const mockGetDetails = PdcaCasesAPI.getPdcaCaseDetails as ReturnType<typeof vi.fn>;
+        mockGetDetails.mockRejectedValueOnce(
             new Error('Case not found')
         );
 
@@ -129,7 +133,8 @@ describe('PdcaCaseDetailsPage', () => {
     });
 
     it('handles error response (403)', async () => {
-        (PdcaCasesAPI.getPdcaCaseDetails as any).mockRejectedValueOnce(
+        const mockGetDetails = PdcaCasesAPI.getPdcaCaseDetails as ReturnType<typeof vi.fn>;
+        mockGetDetails.mockRejectedValueOnce(
             new Error('Access denied')
         );
 
@@ -156,7 +161,8 @@ describe('PdcaCaseDetailsPage', () => {
             id: 42,
         };
 
-        (PdcaCasesAPI.getPdcaCaseDetails as any).mockResolvedValueOnce(mockCaseDetails);
+        const mockGetDetails = PdcaCasesAPI.getPdcaCaseDetails as ReturnType<typeof vi.fn>;
+        mockGetDetails.mockResolvedValueOnce(mockCaseDetails);
 
         render(
             <BrowserRouter>
@@ -167,7 +173,7 @@ describe('PdcaCaseDetailsPage', () => {
         );
 
         await waitFor(() => {
-            expect(PdcaCasesAPI.getPdcaCaseDetails).toHaveBeenCalledWith('1', 42);
+            expect(mockGetDetails).toHaveBeenCalledWith('1', 42);
         });
     });
 });

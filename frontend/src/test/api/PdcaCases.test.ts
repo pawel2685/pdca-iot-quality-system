@@ -1,7 +1,10 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { getPdcaCaseDetails } from '../../api/PdcaCases';
 
-global.fetch = vi.fn();
+type MockFetch = ReturnType<typeof vi.fn>;
+const mockFetch = vi.fn() as unknown as MockFetch;
+// @ts-expect-error - Mock fetch for testing
+globalThis.fetch = mockFetch;
 
 describe('PdcaCases API', () => {
     beforeEach(() => {
@@ -27,21 +30,21 @@ describe('PdcaCases API', () => {
                 alert: null,
             };
 
-            (global.fetch as any).mockResolvedValueOnce({
+            (mockFetch).mockResolvedValueOnce({
                 ok: true,
                 json: async () => mockResponse,
             });
 
             const result = await getPdcaCaseDetails('1', 1);
 
-            expect(global.fetch).toHaveBeenCalledWith(
+            expect(mockFetch).toHaveBeenCalledWith(
                 expect.stringContaining('/pdca/cases/1?userId=1')
             );
             expect(result).toEqual(mockResponse);
         });
 
         it('throws error on 404 response', async () => {
-            (global.fetch as any).mockResolvedValueOnce({
+            (mockFetch).mockResolvedValueOnce({
                 ok: false,
                 json: async () => ({ message: 'Case not found' }),
             });
@@ -50,7 +53,7 @@ describe('PdcaCases API', () => {
         });
 
         it('throws error on 403 response', async () => {
-            (global.fetch as any).mockResolvedValueOnce({
+            (mockFetch).mockResolvedValueOnce({
                 ok: false,
                 json: async () => ({ message: 'Access denied' }),
             });
@@ -59,20 +62,20 @@ describe('PdcaCases API', () => {
         });
 
         it('throws error on network failure', async () => {
-            (global.fetch as any).mockRejectedValueOnce(new Error('Network error'));
+            (mockFetch).mockRejectedValueOnce(new Error('Network error'));
 
             await expect(getPdcaCaseDetails('1', 1)).rejects.toThrow('Network error');
         });
 
         it('includes userId in query parameters', async () => {
-            (global.fetch as any).mockResolvedValueOnce({
+            (mockFetch).mockResolvedValueOnce({
                 ok: true,
                 json: async () => ({ case: {}, alert: null }),
             });
 
             await getPdcaCaseDetails('5', 42);
 
-            expect(global.fetch).toHaveBeenCalledWith(
+            expect(mockFetch).toHaveBeenCalledWith(
                 expect.stringContaining('userId=42')
             );
         });
@@ -103,7 +106,7 @@ describe('PdcaCases API', () => {
                 },
             };
 
-            (global.fetch as any).mockResolvedValueOnce({
+            (mockFetch).mockResolvedValueOnce({
                 ok: true,
                 json: async () => mockResponse,
             });
